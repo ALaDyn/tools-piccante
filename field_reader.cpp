@@ -29,14 +29,15 @@ int main (const int argc, const char *argv[])
 	double *xhCoords,*yhCoords,*zhCoords;
 	double *riCoords[3], *rhCoords[3];
 	int Nproc;
+	int Ncomp;
 	long size;
 	float *fields;
+	char* integer_or_halfinteger;
 	std::ostringstream nomefile_bin, nomefile_txt;
 	nomefile_bin << std::string(argv[1]);
 	nomefile_txt << std::string(argv[1]) << ".txt";
 	std::ifstream file_bin;
-	std::ofstream file_txt;
-	static const int Ncomp=6;
+	std::ofstream file_txt;	
 	file_bin.open(nomefile_bin.str().c_str(),std::ios::binary|std::ios::in);
 	file_txt.open(nomefile_txt.str().c_str());
 	
@@ -61,10 +62,20 @@ int main (const int argc, const char *argv[])
 	rhCoords[0]=xhCoords;
 	rhCoords[1]=yhCoords;
 	rhCoords[2]=zhCoords;
+
+	file_bin.read((char*) (&Ncomp), sizeof(int));
+	
+	integer_or_halfinteger = new char[3*Ncomp];	
+	for (int c=0; c<Ncomp; c++){
+		file_bin.read(integer_or_halfinteger+c*3,3);
+	}
+
 	for(int c=0;c<3;c++)
 		file_bin.read( (char*)riCoords[c], Ncells[c]*sizeof(double));
 	for(int c=0;c<3;c++)
 		file_bin.read( (char*)rhCoords[c], Ncells[c]*sizeof(double));
+
+
 	
 	std::cout<<Ncells[0]<<"  "<<Ncells[1]<<"  "<<Ncells[2]<<"\n";
 	std::cout<<rNproc[0]<<"  "<<rNproc[1]<<"  "<<rNproc[2]<<"\n";
@@ -78,6 +89,15 @@ int main (const int argc, const char *argv[])
 			std::cout << rhCoords[c][i]<<"  ";
 		std::cout<<endl;
 	}
+
+	std::cout << "Ncomp: " << Ncomp << std::endl;
+	for (int c=0; c<Ncomp; c++){
+		std::cout << c << ": "
+							<< (int)integer_or_halfinteger[c*3+0] << " " 
+							<< (int)integer_or_halfinteger[c*3+1] << " "
+							<< (int)integer_or_halfinteger[c*3+2] << std::endl;
+	}
+
 	size=((long)Ncomp)*((long)Ncells[0])*((long)Ncells[1])*((long)Ncells[2]);
 	fields=new float[size];
 	
