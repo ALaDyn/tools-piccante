@@ -21,6 +21,29 @@ int is_big_endian(void)
 	return bint.c[0] == 1; 
 }
 
+inline void drawLoadBar(long i, long Ntot, long R, int sizeBar){
+	if (i % (Ntot/R) != 0) return;
+	
+	std::cout << "\r";
+
+	float ratio = i /((float)Ntot);
+
+	int numSymbols = (int) sizeBar*ratio;
+
+	std::cout << std::setw(3) << (int)(ratio*100) << "% [";
+	
+	int j;
+	for (j = 0; j < numSymbols; j++){
+		std::cout << "=";
+	}
+	for (; j < sizeBar; j++){
+		std::cout << " ";
+	}
+
+	std::cout <<"]";
+	std::cout.flush();
+}
+
 
 int main (const int argc, const char *argv[])
 {
@@ -77,18 +100,19 @@ int main (const int argc, const char *argv[])
 
 
 	
-	std::cout<<Ncells[0]<<"  "<<Ncells[1]<<"  "<<Ncells[2]<<"\n";
-	std::cout<<rNproc[0]<<"  "<<rNproc[1]<<"  "<<rNproc[2]<<"\n";
-	for(int c=0; c<3;c++){
+	std::cout<< " Ncells:  " << Ncells[0]<<"  "<<Ncells[1]<<"  "<<Ncells[2]<<"\n";
+	std::cout<< " Nprocs:  " << rNproc[0]<<"  "<<rNproc[1]<<"  "<<rNproc[2]<<"\n";
+	
+	/*for(int c=0; c<3;c++){
 		for(int i=0;i<Ncells[c];i++)
-			std::cout << riCoords[c][i]<<"  ";
+		std::cout << riCoords[c][i]<<"  ";
 		std::cout<<endl;
-	}
-	for(int c=0; c<3;c++){
+		}
+		for(int c=0; c<3;c++){
 		for(int i=0;i<Ncells[c];i++)
-			std::cout << rhCoords[c][i]<<"  ";
+		std::cout << rhCoords[c][i]<<"  ";
 		std::cout<<endl;
-	}
+		}*/
 
 	std::cout << "Ncomp: " << Ncomp << std::endl;
 	for (int c=0; c<Ncomp; c++){
@@ -101,6 +125,8 @@ int main (const int argc, const char *argv[])
 	size=((long)Ncomp)*((long)Ncells[0])*((long)Ncells[1])*((long)Ncells[2]);
 	fields=new float[size];
 	
+	std::cout << "Reading ..." << std::endl; std::cout.flush();
+
 	for(int rank=0;rank<Nproc;rank++){
 		file_bin.read( (char*)locOrigin, 3*sizeof(int) );
 		file_bin.read( (char*)locNcells, 3*sizeof(int) );
@@ -108,11 +134,13 @@ int main (const int argc, const char *argv[])
 		std::cout<<endl;
 		std::cout<< "locNcells: " << locNcells[0]<<"  "<<locNcells[1]<<"  "<<locNcells[2]<<"\n";
 		std::cout<< "orign: " << locOrigin[0]<<"  "<<locOrigin[1]<<"  "<<locOrigin[2]<<"\n";
-	float *locFields;
+		float *locFields;
 		int locSize=Ncomp*locNcells[0]*locNcells[1]*locNcells[2];
 		locFields=new float[locSize];
 		file_bin.read( (char*)locFields, locSize*sizeof(float) );
 		
+		drawLoadBar(rank+1, Nproc, Nproc, 30);
+	
 		for(int k=0;k<locNcells[2];k++){
 			for(int j=0;j<locNcells[1];j++){
 				for(int i=0;i<locNcells[0];i++){
@@ -128,17 +156,26 @@ int main (const int argc, const char *argv[])
 			}
 		}
 	}
+
+	std::cout << std::endl  << "Writing to file ..." << std::endl; std::cout.flush();
+	
 	long k=Ncells[2]/2;
+
+	long totPts = Ncells[0]*Ncells[1];
+
 	for(long j=0;j<Ncells[1];j++){
 		for(long i=0;i<Ncells[0];i++){
+
+			drawLoadBar(i + j*Ncells[0] + 1, totPts, Ncells[1], 30);
+			
 			file_txt << setw(12) << setprecision(5) << xiCoords[i];
 			file_txt << setw(12) << setprecision(5) << yiCoords[j];
 			file_txt << setw(12) << setprecision(5) << ziCoords[k];
-				for(int c=0;c<Ncomp;c++){
-					long index = c + Ncomp*i + Ncomp*Ncells[0]*j   + Ncomp*Ncells[0]*Ncells[1]*k;
-					file_txt << setw(12) << setprecision(5) << fields[index];
-				}
-				file_txt<<endl;
+			for(int c=0;c<Ncomp;c++){
+				long index = c + Ncomp*i + Ncomp*Ncells[0]*j   + Ncomp*Ncells[0]*Ncells[1]*k;
+				file_txt << setw(12) << setprecision(5) << fields[index];
+			}
+			file_txt<<endl;
 		}
 	}
 		
