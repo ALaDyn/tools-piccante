@@ -140,6 +140,7 @@ int main (const int argc, const char *argv[])
 		file_bin.read( (char*)locFields, locSize*sizeof(float) );
 		
 		drawLoadBar(rank+1, Nproc, Nproc, 30);
+		std::cout << std::endl;
 	
 		for(int k=0;k<locNcells[2];k++){
 			for(int j=0;j<locNcells[1];j++){
