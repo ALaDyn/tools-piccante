@@ -178,9 +178,10 @@ int main (const int argc, const char *argv[])
 			}
 			file_txt<<endl;
 		}
+		file_txt<<endl;
 	}
 		
-	
+	std::cout << std::endl;
 
 	file_bin.close();
 	file_txt.close();
