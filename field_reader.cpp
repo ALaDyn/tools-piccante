@@ -71,7 +71,7 @@ int main (const int argc, const char *argv[])
 	int Ncomp;
 	long size;
 	float *fields;
-	char* integer_or_halfinteger;
+	int* integer_or_halfinteger;
 	std::ostringstream nomefile_bin, nomefile_txt;
 	nomefile_bin << std::string(argv[1]);
 	nomefile_txt << std::string(argv[1]) << ".txt";
@@ -104,9 +104,9 @@ int main (const int argc, const char *argv[])
 
 	file_bin.read((char*) (&Ncomp), sizeof(int));
 	
-	integer_or_halfinteger = new char[3*Ncomp];	
+	integer_or_halfinteger = new int[3*Ncomp];	
 	for (int c=0; c<Ncomp; c++){
-		file_bin.read(integer_or_halfinteger+c*3,3);
+		file_bin.read((char*)&integer_or_halfinteger[c*3],3*sizeof(int));
 	}
 
 	for(int c=0;c<3;c++)
@@ -133,9 +133,9 @@ int main (const int argc, const char *argv[])
 	std::cout << "Ncomp: " << Ncomp << std::endl;
 	for (int c=0; c<Ncomp; c++){
 		std::cout << c << ": "
-							<< (int)integer_or_halfinteger[c*3+0] << " " 
-							<< (int)integer_or_halfinteger[c*3+1] << " "
-							<< (int)integer_or_halfinteger[c*3+2] << std::endl;
+							<< integer_or_halfinteger[c*3+0] << " " 
+							<< integer_or_halfinteger[c*3+1] << " "
+							<< integer_or_halfinteger[c*3+2] << std::endl;
 	}
 
 	size=((long)Ncomp)*((long)Ncells[0])*((long)Ncells[1])*((long)Ncells[2]);
