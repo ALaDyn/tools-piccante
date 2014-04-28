@@ -22,7 +22,11 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include <cmath>
 #include <iomanip>
 #include <string>
+#if defined(CINECA)
+#include <inttypes.h>
+#else
 #include <cstdint>
+#endif
 #include <cstdlib>
 
 
