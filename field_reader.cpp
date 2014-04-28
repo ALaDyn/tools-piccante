@@ -21,7 +21,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include <malloc.h>
 #include <cmath>
 #include <iomanip>
-#include <string>
+#include <cstring>
 #if defined(CINECA)
 #include <inttypes.h>
 #else
