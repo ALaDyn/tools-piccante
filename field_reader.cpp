@@ -64,11 +64,11 @@ int main(const int argc, const char *argv[]){
 		return -3;
 	}
 	for (int i = 2; i < argc; i++){
-		if (!strncmp(argv[i], "-cutx", 5)){
+		if (!std::strncmp(argv[i], "-cutx", 5)){
 			valueCutx = atof(argv[i + 1]);
 			FLAG_cutx = true;
 		}
-		if (!strncmp(argv[i], "-integratex", 11)){
+		if (!std::strncmp(argv[i], "-integratex", 11)){
 			FLAG_integratex = true;
 		}
 	}
