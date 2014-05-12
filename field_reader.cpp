@@ -29,6 +29,23 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #include <cstdlib>
 
+void swap_endian_f(float* in_f, size_t n)
+{
+	size_t i;
+	union {int imio; float fmio; char arr[4];}x;
+	char buff;
+	for(i=0;i<n;i++)
+	{
+		x.fmio=in_f[i];
+		buff=x.arr[0];
+		x.arr[0]=x.arr[3];
+		x.arr[3]=buff;
+		buff=x.arr[1];
+		x.arr[1]=x.arr[2];
+		x.arr[2]=buff;
+		in_f[i]=x.fmio;
+	}
+}
 
 int is_big_endian();
 
@@ -37,6 +54,7 @@ inline void drawLoadBar(long, long, long, int);
 
 int main(const int argc, const char *argv[]){
 	bool FLAG_cutx = false, FLAG_integratex = false;
+	bool FLAG_3D = false;
 	double valueCutx;
 	int Ncells[3], rNproc[3], locOrigin[3], locNcells[3];
 	double *xiCoords, *yiCoords, *ziCoords;
@@ -70,6 +88,9 @@ int main(const int argc, const char *argv[]){
 		}
 		if (!std::strncmp(argv[i], "-integratex", 11)){
 			FLAG_integratex = true;
+		}
+		if (!std::strncmp(argv[i], "-3D", 3)){
+			FLAG_3D = true;
 		}
 	}
 	file_bin.read((char*)Ncells, 3 * sizeof(int));
@@ -189,7 +210,40 @@ int main(const int argc, const char *argv[]){
 	file_bin.close();
 	file_txt.close();
 
-	if (FLAG_cutx){
+	if (FLAG_3D&&Ncomp==1)	{
+	  printf("3D enabled\n");
+	  std::FILE *clean_fields;
+	  char nomefile_campi[1024];
+	  long totPts = Ncells[0] * Ncells[1]* Ncells[2];
+	  double dx, dy, dz;
+	  swap_endian_f(fields,totPts);
+	 dx=xiCoords[1]-xiCoords[0];
+	  dy=yiCoords[1]-yiCoords[0];
+	  dz=ziCoords[1]-ziCoords[0];
+	  sprintf(nomefile_campi,"%s_3D.vtk",argv[1]);
+	  clean_fields=fopen(nomefile_campi, "wb");
+	  printf("\nWriting the fields file\n");
+	  fprintf(clean_fields,"# vtk DataFile Version 2.0\n");
+	  fprintf(clean_fields,"titolo mio\n");
+	  fprintf(clean_fields,"BINARY\n");
+	  fprintf(clean_fields,"DATASET STRUCTURED_POINTS\n");
+	  fprintf(clean_fields,"DIMENSIONS %i %i %i\n",Ncells[0], Ncells[1], Ncells[2]);
+	  fprintf(clean_fields,"ORIGIN %f %f %f\n",xiCoords[0], yiCoords[0], ziCoords[0]);
+	  fprintf(clean_fields,"SPACING %f %f %f\n",dx, dy, dz);
+	  fprintf(clean_fields,"POINT_DATA %li\n",totPts);
+	  fprintf(clean_fields,"SCALARS campo float 1\n");
+	  fprintf(clean_fields,"LOOKUP_TABLE default\n");
+	  fwrite((void*)fields,sizeof(float),totPts,clean_fields);
+
+	  fclose(clean_fields);
+
+	}
+	std::cout << std::endl;
+
+	
+	
+
+if (FLAG_cutx){
 		printf("cutx enabled\n");
 		double exactvalue, delta = 1e30;
 		long i, iCutx;
