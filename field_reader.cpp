@@ -54,8 +54,9 @@ inline void drawLoadBar(long, long, long, int);
 
 int main(const int argc, const char *argv[]){
 	bool FLAG_cutx = false, FLAG_integratex = false;
-	bool FLAG_3D = false;
-	double valueCutx;
+	bool FLAG_3D = false; bool FLAG_NO2D = false;
+	bool FLAG_cuty = false;
+	double valueCutx; double valueCuty;
 	int Ncells[3], rNproc[3], locOrigin[3], locNcells[3];
 	double *xiCoords, *yiCoords, *ziCoords;
 	double *xhCoords, *yhCoords, *zhCoords;
@@ -89,9 +90,20 @@ int main(const int argc, const char *argv[]){
 		if (!std::strncmp(argv[i], "-integratex", 11)){
 			FLAG_integratex = true;
 		}
+
+		if (!std::strncmp(argv[i], "-cuty", 5)){
+		  valueCuty = atof(argv[i + 1]);
+		  FLAG_cuty = true;
+                }
+
+
 		if (!std::strncmp(argv[i], "-3D", 3)){
 			FLAG_3D = true;
 		}
+		if (!std::strncmp(argv[i], "-no2D", 5)){
+		  FLAG_NO2D = true;
+                }
+
 	}
 	file_bin.read((char*)Ncells, 3 * sizeof(int));
 	file_bin.read((char*)rNproc, 3 * sizeof(int));
@@ -183,6 +195,7 @@ int main(const int argc, const char *argv[]){
 
 	std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
 
+	if (!FLAG_NO2D)
 	{
 		long k = Ncells[2] / 2;
 
@@ -275,6 +288,41 @@ if (FLAG_cutx){
 		}
 	}
 	file_txt.close();
+
+	if (FLAG_cuty){
+	  printf("cuty enabled\n");
+	  double exactvalue, delta = 1e30;
+	  long j, jCuty;
+	  for (j = 0; j < Ncells[1]; j++){
+	    if (fabs(valueCuty - yiCoords[j]) < delta){
+	      delta = fabs(valueCuty - yiCoords[j]);
+	      exactvalue = yiCoords[j];
+	      jCuty = j;
+	    }
+	  }
+	  j = jCuty;
+	  nomefile_txt.str("");
+	  nomefile_txt << std::string(argv[1]);
+	  nomefile_txt << "cuty" << exactvalue << ".txt";
+	  file_txt.open(nomefile_txt.str().c_str());
+
+	  for (long k = 0; k < Ncells[2]; k++){
+	    for (long i = 0; i < Ncells[0]; i++){
+
+	      file_txt << std::setw(12) << std::setprecision(5) << xiCoords[i];
+	      file_txt << std::setw(12) << std::setprecision(5) << ziCoords[k];
+	      for (int c = 0; c < Ncomp; c++){
+		long index = c + Ncomp*i + Ncomp*Ncells[0] * j + Ncomp*Ncells[0] * Ncells[1] * k;
+		file_txt << std::setw(12) << std::setprecision(5) << fields[index];
+	      }
+	      file_txt << std::endl;
+	    }
+	    file_txt << std::endl;
+	  }
+        }
+        file_txt.close();
+
+
 	if (FLAG_integratex){
 		printf("integratex enabled\n");
 
