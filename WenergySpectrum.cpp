@@ -19,8 +19,8 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 
 int main(int narg, char **args)
 {
-	int k, n, i, FLAG_number = 0, FLAG_log = 0, count = 0;
-	double gamma, E, m, angle;
+  int k, n, i, FLAG_number = 0, FLAG_log = 0, count = 0, FLAG_angle = 0;
+  double gamma, E, m, angle, sel_angle = 180;
 	double *bin, Emin, Emax, dE, norm, weight = 1;
 	Dfloat ptr[COMPONENTI];
 	FILE *f = fopen(args[1], "r");
@@ -47,6 +47,9 @@ int main(int narg, char **args)
 		if (!strncmp(args[i], "-w", 2))
 			weight = atof(args[i + 1]);
 
+		if (!strncmp(args[i], "-angle", 6))
+		  sel_angle = atof(args[i + 1]);
+
 
 	}
 	sprintf(nome, "energySpectrum_%s", args[1]);
@@ -67,11 +70,11 @@ int main(int narg, char **args)
 		//fscanf(f, "%lf %lf", &angle, &gamma);
 		if (feof(f)) break;
 		gamma = sqrt(1 + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1;
-		angle = atan2(ptr[5] / gamma, ptr[3] / gamma) * 180 / M_PI;
+		angle = atan2(ptr[4], ptr[3]) * 180 / M_PI;
 		count++;
 		E = gamma*m*c*c*J2MeV;
 
-		if (E >= Emin && E < Emax)
+		if (E >= Emin && E < Emax && fabs(angle) < sel_angle)
 		{
 			k = (int) ((E - Emin) / dE);
 			bin[k] += weight / dE;
