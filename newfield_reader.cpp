@@ -306,7 +306,7 @@ if(doSwap)
 	  printf("3D enabled\n");
 	  std::FILE *clean_fields;
 	  char nomefile_campi[1024];
-      long totPts = Ncells[0] * Ncells[1]* Ncells[2]*Ncomp;
+      long totPts = Ncells[0] * Ncells[1]* Ncells[2];
 	  double dx, dy, dz;
 	  if(!is_big_endian)
 	    swap_endian(fields,totPts);
@@ -315,7 +315,7 @@ if(doSwap)
 	  dz=ziCoords[1]-ziCoords[0];
 	  sprintf(nomefile_campi,"%s_3D.vtk",argv[1]);
 	  clean_fields=fopen(nomefile_campi, "wb");
-	  printf("\nWriting the fields file\n");
+      printf("Writing the fields file\n");
 	  fprintf(clean_fields,"# vtk DataFile Version 2.0\n");
 	  fprintf(clean_fields,"titolo mio\n");
 	  fprintf(clean_fields,"BINARY\n");
@@ -327,9 +327,9 @@ if(doSwap)
       if(Ncomp==1)
           fprintf(clean_fields,"SCALAR scalar float 1\n");
       else
-          fprintf(clean_fields,"VECTORS field float 1\n");
+          fprintf(clean_fields,"VECTORS field float\n");
 	  fprintf(clean_fields,"LOOKUP_TABLE default\n");
-	  fwrite((void*)fields,sizeof(float),totPts,clean_fields);
+      fwrite((void*)fields,sizeof(float),totPts*Ncomp,clean_fields);
 
 	  fclose(clean_fields);
 
