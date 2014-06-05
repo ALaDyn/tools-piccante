@@ -302,11 +302,11 @@ if(doSwap)
 	file_bin.close();
 	file_txt.close();
 
-	if (FLAG_3D&&Ncomp==1)	{
+    if (FLAG_3D)	{
 	  printf("3D enabled\n");
 	  std::FILE *clean_fields;
 	  char nomefile_campi[1024];
-	  long totPts = Ncells[0] * Ncells[1]* Ncells[2];
+      long totPts = Ncells[0] * Ncells[1]* Ncells[2]*Ncomp;
 	  double dx, dy, dz;
 	  if(!is_big_endian)
 	    swap_endian(fields,totPts);
@@ -324,7 +324,10 @@ if(doSwap)
 	  fprintf(clean_fields,"ORIGIN %f %f %f\n",xiCoords[0], yiCoords[0], ziCoords[0]);
 	  fprintf(clean_fields,"SPACING %f %f %f\n",dx, dy, dz);
 	  fprintf(clean_fields,"POINT_DATA %li\n",totPts);
-	  fprintf(clean_fields,"SCALARS campo float 1\n");
+      if(Ncomp==1)
+          fprintf(clean_fields,"SCALAR scalar float 1\n");
+      else
+          fprintf(clean_fields,"VECTORS field float 1\n");
 	  fprintf(clean_fields,"LOOKUP_TABLE default\n");
 	  fwrite((void*)fields,sizeof(float),totPts,clean_fields);
 

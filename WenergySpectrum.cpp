@@ -20,8 +20,9 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 int main(int narg, char **args)
 {
   int k, n, i, FLAG_number = 0, FLAG_log = 0, count = 0, FLAG_angle = 0;
+  int FLAG_weight=0;
   double gamma, E, m, angle, sel_angle = 180;
-	double *bin, Emin, Emax, dE, norm, weight = 1;
+    double *bin, Emin, Emax, dE, norm, weight = 1, myweight;
 	Dfloat ptr[COMPONENTI];
 	FILE *f = fopen(args[1], "r");
 	FILE *h;
@@ -31,7 +32,9 @@ int main(int narg, char **args)
 	if (narg < 6)
 	{
 		printf("-----usage:  Wenergy_Spectrum   file_name   Emin(MeV)   Emax(MeV)   Nbin   electron/protons(0/1)\n");
-		exit(0);
+        printf("     options:  -log (log scale)   -num (no normalization dE) -w $WEIGHT (use WEIGHT as weight for all particles)\n");
+        printf("            :  -angle $ANGLE (select particle emitted within ANGLE degrees from positive x axis\n");
+        exit(0);
 	}
 
 	sscanf(args[2], "%lf", &Emin);
@@ -39,21 +42,24 @@ int main(int narg, char **args)
 	sscanf(args[4], "%i", &Nbin);
 	sscanf(args[5], "%i", &FLAG_P);
 	for (i = 6; i < narg; i++)
-	{
-		if (!strncmp(args[i], "-log", 4))
-			FLAG_log = 1;
-		if (!strncmp(args[i], "-num", 4))
-			FLAG_number = 1;
-		if (!strncmp(args[i], "-w", 2))
-			weight = atof(args[i + 1]);
+    {
+        if (!strncmp(args[i], "-log", 4))
+            FLAG_log = 1;
+        if (!strncmp(args[i], "-num", 4)){
+            FLAG_number = 1;
+        }
+        if (!strncmp(args[i], "-w", 2)){
+            weight = atof(args[i + 1]);
+            FLAG_weight=1;
+        }
 
-		if (!strncmp(args[i], "-angle", 6))
-		  sel_angle = atof(args[i + 1]);
+        if (!strncmp(args[i], "-angle", 6))
+            sel_angle = atof(args[i + 1]);
 
 
-	}
-	sprintf(nome, "energySpectrum_%s", args[1]);
-	h = fopen(nome, "w");
+    }
+    sprintf(nome, "energySpectrum_%s", args[1]);
+    h = fopen(nome, "w");
 
 	bin = (double*)malloc(Nbin*sizeof(double));
 	memset((void*)bin, 0, Nbin*sizeof(double));
@@ -70,14 +76,17 @@ int main(int narg, char **args)
 		//fscanf(f, "%lf %lf", &angle, &gamma);
 		if (feof(f)) break;
 		gamma = sqrt(1 + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1;
-		angle = atan2(ptr[4], ptr[3]) * 180 / M_PI;
-		count++;
+        angle = atan2(ptr[4], ptr[3]) * 180 / M_PI;
+        myweight = ptr[6];
+        //angle = atan2(sqrt(ptr[4]*ptr[4] + ptr[5]*ptr[5]), ptr[3]) * 180 / M_PI;
+        count++;
 		E = gamma*m*c*c*J2MeV;
-
+        if(FLAG_weight)
+            myweight=weight;
 		if (E >= Emin && E < Emax && fabs(angle) < sel_angle)
 		{
 			k = (int) ((E - Emin) / dE);
-			bin[k] += weight / dE;
+            bin[k] += myweight;
 			n++;
 		}
 		if (!(count % 10000))
