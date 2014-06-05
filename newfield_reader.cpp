@@ -69,11 +69,20 @@ int is_big_endian();
 
 inline void drawLoadBar(long, long, long, int);
 
+int findIndexMin (double val, float* coords, int numcoords);
+int findIndexMax (double val, float* coords, int numcoords);
 
 int main(const int argc, const char *argv[]){
 	bool FLAG_cutx = false, FLAG_integratex = false;
 	bool FLAG_3D = false; bool FLAG_NO2D = false;
 	bool FLAG_cuty = false;
+	bool FLAG_xmin = false; double xminval = -9999.0; int iminval = 0;
+	bool FLAG_xmax = false; double xmaxval = +9999.0; int imaxval = 0;
+	bool FLAG_ymin = false; double yminval = -9999.0; int jminval = 0;
+	bool FLAG_ymax = false; double ymaxval = +9999.0; int jmaxval = 0;
+	bool FLAG_zmin = false; double zminval = -9999.0; int kminval = 0;
+	bool FLAG_zmax = false; double zmaxval = +9999.0; int kmaxval = 0;
+
 	bool doSwap;
 	int isFileBigEndian;
 	double valueCutx; double valueCuty;
@@ -118,10 +127,45 @@ int main(const int argc, const char *argv[]){
 
 		if (!std::strncmp(argv[i], "-3D", 3)){
 			FLAG_3D = true;
+		       
 		}
+
 		if (!std::strncmp(argv[i], "-no2D", 5)){
 		  FLAG_NO2D = true;
                 }
+
+		if (!std::strncmp(argv[i], "-xmin", 5)){
+		  FLAG_xmin = true;
+		  xminval = atof(argv[i + 1]);
+		}
+		
+		if (!std::strncmp(argv[i], "-xmax", 5)){
+                  FLAG_xmax = true;
+		  xmaxval = atof(argv[i + 1]);
+		}
+
+		if (!std::strncmp(argv[i], "-ymin", 5)){
+                  FLAG_ymin = true;
+		  yminval = atof(argv[i + 1]);
+		}
+
+		if (!std::strncmp(argv[i], "-ymax", 5)){
+                  FLAG_ymax = true;
+		  ymaxval = atof(argv[i + 1]);
+		}
+
+		if (!std::strncmp(argv[i], "-zmin", 5)){
+                  FLAG_zmin = true;
+		  zminval = atof(argv[i + 1]);
+		}
+
+		if (!std::strncmp(argv[i], "-zmax", 5)){
+                  FLAG_zmax = true;
+		  zmaxval = atof(argv[i + 1]);
+		}
+
+
+
 
 	}
 	file_bin.read((char*)&isFileBigEndian, sizeof(int));
@@ -152,10 +196,35 @@ int main(const int argc, const char *argv[]){
 	  if(doSwap)
 	    swap_endian( riCoords[c], Ncells[c]);
 	}
+
+	imaxval = Ncells[0]-1;
+	jmaxval = Ncells[1]-1;
+	kmaxval = Ncells[2]-1;
+
+
+	if (FLAG_xmin)
+	  iminval = findIndexMin(xminval, riCoords[0], Ncells[0]);
+	
+	if (FLAG_xmax)
+          imaxval = findIndexMax(xmaxval, riCoords[0], Ncells[0]);
+	
+	if (FLAG_ymin)
+          jminval = findIndexMin(yminval, riCoords[1], Ncells[1]);
+
+        if (FLAG_ymax)
+          jmaxval = findIndexMax(ymaxval, riCoords[1], Ncells[1]);
+
+	if (FLAG_zmin)
+          kminval = findIndexMin(zminval, riCoords[2], Ncells[2]);
+
+        if (FLAG_zmax)
+          kmaxval = findIndexMax(zmaxval, riCoords[2], Ncells[2]);
+	
 	std::cout << "IsBigEndian:  " << isFileBigEndian << "\n";
 	std::cout << "Ncells:  " << Ncells[0] << "  " << Ncells[1] << "  " << Ncells[2] << "\n";
 	std::cout << "Nprocs:  " << rNproc[0] << "  " << rNproc[1] << "  " << rNproc[2] << "\n";
 	std::cout << "Ncomp: " << Ncomp << std::endl;
+	
 	size = ((long)Ncomp)*((long)Ncells[0])*((long)Ncells[1])*((long)Ncells[2]);
 	fields = new float[size];
 
@@ -206,12 +275,15 @@ if(doSwap)
 	{
 		long k = Ncells[2] / 2;
 
-		long totPts = Ncells[0] * Ncells[1];
+		long tipoints = (imaxval-iminval+1);
+		long tjpoints = (jmaxval-jminval+1);
 
-		for (long j = 0; j < Ncells[1]; j++){
-			for (long i = 0; i < Ncells[0]; i++){
+		long totPts = tipoints*tjpoints;		
 
-				drawLoadBar(i + j*Ncells[0] + 1, totPts, Ncells[1], 30);
+		for (long j = jminval; j <=jmaxval ; j++){
+			for (long i = iminval; i <= imaxval; i++){
+
+			  drawLoadBar(i + (j-jminval)*tipoints + 1, totPts, tjpoints, 30);
 
 				file_txt << std::setw(12) << std::setprecision(5) << xiCoords[i];
 				file_txt << std::setw(12) << std::setprecision(5) << yiCoords[j];
@@ -399,4 +471,33 @@ inline void drawLoadBar(long i, long Ntot, long R, int sizeBar){
 	std::cout.flush();
 }
 
+
+int findIndexMin (double val, float* coords, int numcoords){
+  if (numcoords <= 1) 
+    return 0;
+
+  if (val <= coords[0])
+    return 0;
+
+  for (int i = 1; i < numcoords; i++){
+     if (val < coords[i])
+      return (i-1);
+  }
+  
+}
+
+int findIndexMax (double val, float* coords, int numcoords){
+  if (numcoords<= 1)
+    return 0;
+
+  if (val >= coords[numcoords-1])
+    return (numcoords-1);
+
+  for (int i = (numcoords-1); i >= 0; i--){
+    if (val > coords[i])
+      return (i+1);
+  }
+
+
+}
 
