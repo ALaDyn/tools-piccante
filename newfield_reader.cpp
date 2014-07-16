@@ -325,7 +325,7 @@ if(doSwap)
 	  fprintf(clean_fields,"SPACING %f %f %f\n",dx, dy, dz);
 	  fprintf(clean_fields,"POINT_DATA %li\n",totPts);
       if(Ncomp==1)
-          fprintf(clean_fields,"SCALAR scalar float 1\n");
+          fprintf(clean_fields,"SCALARS scalar float 1\n");
       else
           fprintf(clean_fields,"VECTORS field float\n");
 	  fprintf(clean_fields,"LOOKUP_TABLE default\n");
