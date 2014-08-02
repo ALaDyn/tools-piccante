@@ -206,18 +206,18 @@ int main(const int argc, const char *argv[]){
 	  iminval = findIndexMin(xminval, riCoords[0], Ncells[0]);
 	
 	if (FLAG_xmax)
-          imaxval = findIndexMax(xmaxval, riCoords[0], Ncells[0]);
+        imaxval = findIndexMax(xmaxval, riCoords[0], Ncells[0]);
 	
 	if (FLAG_ymin)
-          jminval = findIndexMin(yminval, riCoords[1], Ncells[1]);
-
-        if (FLAG_ymax)
-          jmaxval = findIndexMax(ymaxval, riCoords[1], Ncells[1]);
-
+        jminval = findIndexMin(yminval, riCoords[1], Ncells[1]);
+    
+    if (FLAG_ymax)
+        jmaxval = findIndexMax(ymaxval, riCoords[1], Ncells[1]);
+    
 	if (FLAG_zmin)
-          kminval = findIndexMin(zminval, riCoords[2], Ncells[2]);
-
-        if (FLAG_zmax)
+        kminval = findIndexMin(zminval, riCoords[2], Ncells[2]);
+    
+    if (FLAG_zmax)
           kmaxval = findIndexMax(zmaxval, riCoords[2], Ncells[2]);
 	
 	std::cout << "IsBigEndian:  " << isFileBigEndian << "\n";
