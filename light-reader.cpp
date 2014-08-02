@@ -266,7 +266,7 @@ int main(const int argc, const char *argv[]){
         bool flagRead=true;
         for (int c = 0; c < 3; c++){
         if(FLAG_lockr[c])
-            if(!(locOrigin[c]<lockIndex[c]&& (locOrigin[c]+locNcells[c]) ))
+            if(!(locOrigin[c]<lockIndex[c]&& (locOrigin[c]+locNcells[c]>lockIndex[c]) ))
                 flagRead = false;
         }
         if(flagRead){
@@ -277,9 +277,12 @@ int main(const int argc, const char *argv[]){
                             long ii = i + locOrigin[0];
                             long jj = j + locOrigin[1];
                             long kk = k + locOrigin[2];
-                            long index = c + Ncomp*ii + Ncomp*Ncells[0] * jj + Ncomp*Ncells[0] * Ncells[1] * kk;
+                            long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
                             long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
-                            fields[index] = locFields[locIndex];
+                            if(!FLAG_lockr[0] || ii==lockIndex[0])
+                                if(!FLAG_lockr[1] || jj==lockIndex[1])
+                                    if(!FLAG_lockr[2] || kk==lockIndex[2])
+                                        fields[index] = locFields[locIndex];
                         }
                     }
                 }
@@ -297,21 +300,23 @@ int main(const int argc, const char *argv[]){
 
         long totPts = tipoints*tjpoints;
 
-        for (long j = jminval; j <=jmaxval ; j++){
-            for (long i = iminval; i <= imaxval; i++){
+        for (long k = kminval; k <=kmaxval ; k++){
+            for (long j = jminval; j <=jmaxval ; j++){
+                for (long i = iminval; i <= imaxval; i++){
 
-                drawLoadBar(i + (j-jminval)*tipoints + 1, totPts, tjpoints, 30);
+                    drawLoadBar(i + (j-jminval)*tipoints + 1, totPts, tjpoints, 30);
 
-                file_txt << std::setw(12) << std::setprecision(5) << xiCoords[i];
-                file_txt << std::setw(12) << std::setprecision(5) << yiCoords[j];
-                file_txt << std::setw(12) << std::setprecision(5) << ziCoords[k];
-                for (int c = 0; c < Ncomp; c++){
-                    long index = c + Ncomp*i + Ncomp*Ncells[0] * j + Ncomp*Ncells[0] * Ncells[1] * k;
-                    file_txt << std::setw(12) << std::setprecision(5) << fields[index];
+                    file_txt << std::setw(12) << std::setprecision(5) << xiCoords[i];
+                    file_txt << std::setw(12) << std::setprecision(5) << yiCoords[j];
+                    file_txt << std::setw(12) << std::setprecision(5) << ziCoords[k];
+                    for (int c = 0; c < Ncomp; c++){
+                        long index = c + Ncomp*i + Ncomp*Ncells[0] * j + Ncomp*Ncells[0] * Ncells[1] * k;
+                        file_txt << std::setw(12) << std::setprecision(5) << fields[index];
+                    }
+                    file_txt << std::endl;
                 }
                 file_txt << std::endl;
             }
-            file_txt << std::endl;
         }
     }
     std::cout << std::endl;
