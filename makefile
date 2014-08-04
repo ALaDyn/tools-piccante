@@ -1,7 +1,7 @@
 COMPILER = g++
 EXE = piccante
 
-OPT = -O3 -std=gnu++11
+OPT = -O3 -std=c++0x
 
 LFLAGS = -Wall
 
