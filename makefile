@@ -6,17 +6,17 @@ OPT = -O3 -std=c++0x
 LFLAGS = -Wall
 
 LIB = 
-EXE1 = new_reader
+EXE1 = newReader
 EXE2 = WangularSpectrum
 EXE3 = WenergySpectrum
 EXE4 = WsliceDaBinario
-EXE5 = light_reader
+EXE5 = lightReader
 
-SRC1 = newfield_reader.cpp
+SRC1 = newReader.cpp
 SRC2 = WangularSpectrum.cpp
 SRC3 = WenergySpectrum.cpp
 SRC4 = WsliceDaBinario.cpp
-SRC5 = light-reader.cpp
+SRC5 = lightReader.cpp
 
 all : $(EXE1) $(EXE2) $(EXE3) $(EXE4)  $(EXE5) 
 
