@@ -78,17 +78,17 @@ int main(const int argc, const char *argv[]){
     FLAG_lockr[0] = false;
     FLAG_lockr[1] = false;
     FLAG_lockr[2] = false;
-    int lockIndex[3];
+
     bool  FLAG_integratex = false,FLAG_integratey = false, FLAG_integratez = false;
     bool FLAG_cutx = false;
     bool FLAG_cuty = false;
     bool FLAG_cutz = false;
-    bool FLAG_xmin = false; double xminval = -9999.0; int iminval = 0;
-    bool FLAG_xmax = false; double xmaxval = +9999.0; int imaxval = 0;
-    bool FLAG_ymin = false; double yminval = -9999.0; int jminval = 0;
-    bool FLAG_ymax = false; double ymaxval = +9999.0; int jmaxval = 0;
-    bool FLAG_zmin = false; double zminval = -9999.0; int kminval = 0;
-    bool FLAG_zmax = false; double zmaxval = +9999.0; int kmaxval = 0;
+//    bool FLAG_xmin = false; double xminval = -9999.0; int iminval = 0;
+//    bool FLAG_xmax = false; double xmaxval = +9999.0; int imaxval = 0;
+//    bool FLAG_ymin = false; double yminval = -9999.0; int jminval = 0;
+//    bool FLAG_ymax = false; double ymaxval = +9999.0; int jmaxval = 0;
+//    bool FLAG_zmin = false; double zminval = -9999.0; int kminval = 0;
+//    bool FLAG_zmax = false; double zmaxval = +9999.0; int kmaxval = 0;
 
     bool doSwap;
     int isFileBigEndian;
@@ -110,7 +110,7 @@ int main(const int argc, const char *argv[]){
     file_txt.open(nomefile_txt.str().c_str());
     std::cout << "\nWelcome to the new reader" << std::endl;
     if (argc < 1){
-        printf("USAGE: reader input_file (options: -cutx $value -integratex) \n");
+        printf("USAGE: reader input_file \n");
     }
 
     if (file_bin.fail()){
@@ -136,35 +136,7 @@ int main(const int argc, const char *argv[]){
             FLAG_cuty = true;
         }
 
-        if (!std::strncmp(argv[i], "-xmin", 5)){
-            FLAG_xmin = true;
-            xminval = atof(argv[i + 1]);
-        }
 
-        if (!std::strncmp(argv[i], "-xmax", 5)){
-            FLAG_xmax = true;
-            xmaxval = atof(argv[i + 1]);
-        }
-
-        if (!std::strncmp(argv[i], "-ymin", 5)){
-            FLAG_ymin = true;
-            yminval = atof(argv[i + 1]);
-        }
-
-        if (!std::strncmp(argv[i], "-ymax", 5)){
-            FLAG_ymax = true;
-            ymaxval = atof(argv[i + 1]);
-        }
-
-        if (!std::strncmp(argv[i], "-zmin", 5)){
-            FLAG_zmin = true;
-            zminval = atof(argv[i + 1]);
-        }
-
-        if (!std::strncmp(argv[i], "-zmax", 5)){
-            FLAG_zmax = true;
-            zmaxval = atof(argv[i + 1]);
-        }
     }
     if((!FLAG_lockr[0]||FLAG_lockr[1]||FLAG_lockr[2])){
         FLAG_lockr[2]=true;
@@ -172,7 +144,7 @@ int main(const int argc, const char *argv[]){
 
     file_bin.read((char*)&isFileBigEndian, sizeof(int));
     doSwap = (isFileBigEndian!=is_big_endian());
-
+printf("do swap? %i \n", doSwap);
     file_bin.read((char*)Ncells, 3 * sizeof(int));
     if(doSwap)
         swap_endian( Ncells, 3);
@@ -199,42 +171,24 @@ int main(const int argc, const char *argv[]){
             swap_endian( riCoords[c], Ncells[c]);
     }
 
-    imaxval = Ncells[0]-1;
-    jmaxval = Ncells[1]-1;
-    kmaxval = Ncells[2]-1;
-
-
-    if (FLAG_xmin)
-        iminval = findIndexMin(xminval, riCoords[0], Ncells[0]);
-
-    if (FLAG_xmax)
-        imaxval = findIndexMax(xmaxval, riCoords[0], Ncells[0]);
-
-    if (FLAG_ymin)
-        jminval = findIndexMin(yminval, riCoords[1], Ncells[1]);
-
-    if (FLAG_ymax)
-        jmaxval = findIndexMax(ymaxval, riCoords[1], Ncells[1]);
-
-    if (FLAG_zmin)
-        kminval = findIndexMin(zminval, riCoords[2], Ncells[2]);
-
-    if (FLAG_zmax)
-        kmaxval = findIndexMax(zmaxval, riCoords[2], Ncells[2]);
-
     std::cout << "IsBigEndian:  " << isFileBigEndian << "\n";
     std::cout << "Ncells:  " << Ncells[0] << "  " << Ncells[1] << "  " << Ncells[2] << "\n";
     std::cout << "Nprocs:  " << rNproc[0] << "  " << rNproc[1] << "  " << rNproc[2] << "\n";
     std::cout << "Ncomp: " << Ncomp << std::endl;
+    std::cout << "sizeof long =  " << sizeof(long) << std::endl;
 
     int allocN[3]={Ncells[0],Ncells[1],Ncells[2]};
+    int lockIndex[3]={Ncells[0]/2,Ncells[1]/2,Ncells[2]/2};
     for(int c=0; c<3; c++)
         if(FLAG_lockr[c]){
             allocN[c]=1;
             lockIndex[c]=Ncells[c]/2;
         }
+    for(int c=0; c<3; c++)
+        printf("FLAG_lockr[%i] = %i  allocN[%i] = %i   lockIndex[%i]=%i \n", c, FLAG_lockr[c], c, allocN[c], c, lockIndex[c]);
 
-    size = ((long)Ncomp)*((long)allocN[0])*((long)allocN[1])*((long)allocN[2]);
+    for(int c=0; c < 3; c++)
+        size = ((long)Ncomp)*((long)allocN[0])*((long)allocN[1])*((long)allocN[2]);
     fields = new float[size];
 
     std::cout << "Reading ..." << std::endl; std::cout.flush();
@@ -249,10 +203,10 @@ int main(const int argc, const char *argv[]){
         if(doSwap)
             swap_endian( locNcells,3);
 
-        // std::cout << "rank= " << rank << "  ";
-        // std::cout << std::endl;
-        // std::cout << "locNcells: " << locNcells[0] << "  " << locNcells[1] << "  " << locNcells[2] << "\n";
-        // std::cout << "orign: " << locOrigin[0] << "  " << locOrigin[1] << "  " << locOrigin[2] << "\n";
+//        std::cout << "rank= " << rank << "  ";
+//        //std::cout << std::endl;
+//        std::cout << "locNcells: " << locNcells[0] << "  " << locNcells[1] << "  " << locNcells[2] << " ";
+//        std::cout << "orign: " << locOrigin[0] << "  " << locOrigin[1] << "  " << locOrigin[2] << "\n";
         float *locFields;
         int locSize = Ncomp*locNcells[0] * locNcells[1] * locNcells[2];
         locFields = new float[locSize];
@@ -261,15 +215,18 @@ int main(const int argc, const char *argv[]){
             swap_endian( locFields,locSize);
 
         drawLoadBar(rank + 1, Nproc, Nproc, 30);
-        // std::cout << std::endl;
 
         bool flagRead=true;
         for (int c = 0; c < 3; c++){
-        if(FLAG_lockr[c])
-            if(!(locOrigin[c]<lockIndex[c]&& (locOrigin[c]+locNcells[c]>lockIndex[c]) ))
-                flagRead = false;
+            if(FLAG_lockr[c])
+                if( locOrigin[c]<=lockIndex[c]&& ((locOrigin[c]+locNcells[c])>lockIndex[c]) )
+                    flagRead = flagRead && true;
+                else
+                    flagRead = false;
         }
+
         if(flagRead){
+            //printf("rank=%i   flagrREAD=%i\n", rank, flagRead);
             for (int k = 0; k < locNcells[2]; k++){
                 for (int j = 0; j < locNcells[1]; j++){
                     for (int i = 0; i < locNcells[0]; i++){
@@ -277,7 +234,7 @@ int main(const int argc, const char *argv[]){
                             long ii = i + locOrigin[0];
                             long jj = j + locOrigin[1];
                             long kk = k + locOrigin[2];
-                            long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
+                            long index = c + Ncomp*ii*(!FLAG_lockr[0]) + Ncomp*allocN[0] * jj* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * kk * (!FLAG_lockr[2]);
                             long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
                             if(!FLAG_lockr[0] || ii==lockIndex[0])
                                 if(!FLAG_lockr[1] || jj==lockIndex[1])
@@ -293,24 +250,28 @@ int main(const int argc, const char *argv[]){
     std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
 
     {
-        long k = Ncells[2] / 2;
+        for(int c=0; c < 3; c++)
+            printf("allocN[%i] = %i   ", c, allocN[c]);
+        printf("\n");
+        for (long k = 0; k <allocN[2] ; k++){
+            long kk=k;
+            if(FLAG_lockr[2])
+                kk= lockIndex[2];
+            for (long j = 0; j <allocN[1] ; j++){
+                long jj=j;
+                if(FLAG_lockr[1])
+                    jj= lockIndex[1];
+                for (long i = 0; i < allocN[0]; i++){
+                    long ii=i;
+                    if(FLAG_lockr[0])
+                        ii= lockIndex[0];
+                    //drawLoadBar(i + (j)*tipoints + 1, totPts, tjpoints, 30);
 
-        long tipoints = (imaxval-iminval+1);
-        long tjpoints = (jmaxval-jminval+1);
-
-        long totPts = tipoints*tjpoints;
-
-        for (long k = kminval; k <=kmaxval ; k++){
-            for (long j = jminval; j <=jmaxval ; j++){
-                for (long i = iminval; i <= imaxval; i++){
-
-                    drawLoadBar(i + (j-jminval)*tipoints + 1, totPts, tjpoints, 30);
-
-                    file_txt << std::setw(12) << std::setprecision(5) << xiCoords[i];
-                    file_txt << std::setw(12) << std::setprecision(5) << yiCoords[j];
-                    file_txt << std::setw(12) << std::setprecision(5) << ziCoords[k];
+                    file_txt << std::setw(12) << std::setprecision(5) << xiCoords[ii];
+                    file_txt << std::setw(12) << std::setprecision(5) << yiCoords[jj];
+                    file_txt << std::setw(12) << std::setprecision(5) << ziCoords[kk];
                     for (int c = 0; c < Ncomp; c++){
-                        long index = c + Ncomp*i + Ncomp*Ncells[0] * j + Ncomp*Ncells[0] * Ncells[1] * k;
+                        long index = c + Ncomp*i + Ncomp*allocN[0] * j + Ncomp*allocN[0] * allocN[1] * k;
                         file_txt << std::setw(12) << std::setprecision(5) << fields[index];
                     }
                     file_txt << std::endl;
@@ -324,38 +285,6 @@ int main(const int argc, const char *argv[]){
     file_bin.close();
     file_txt.close();
 
-    if (FLAG_integratex){
-        printf("integratex enabled\n");
-
-        nomefile_txt.str("");
-        nomefile_txt << std::string(argv[1]);
-        nomefile_txt << "integratedX.txt";
-        file_txt.open(nomefile_txt.str().c_str());
-        double integrated[] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-        for (long k = 0; k < Ncells[2]; k++){
-            for (long j = 0; j < Ncells[1]; j++){
-
-                for (long i = 0; i < (Ncells[0]-1); i++){
-                    for (int c = 0; c < Ncomp; c++){
-                        long index = c + Ncomp*i + Ncomp*Ncells[0] * j + Ncomp*Ncells[0] * Ncells[1] * k;
-                        integrated[c] += fields[index] * (xiCoords[i+1] - xiCoords[i]);
-                    }
-
-                }
-                file_txt << std::setw(12) << std::setprecision(5) << yiCoords[j];
-                file_txt << std::setw(12) << std::setprecision(5) << ziCoords[k];
-                for (int c = 0; c < Ncomp; c++){
-                    file_txt << std::setw(12) << std::setprecision(5) << integrated[c];
-                    integrated[c] = 0;
-                }
-
-                file_txt << std::endl;
-            }
-            file_txt << std::endl;
-        }
-    }
-    file_txt.close();
 
 }
 
