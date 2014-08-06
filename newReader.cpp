@@ -102,7 +102,8 @@ int main(const int argc, const char *argv[]){
 	file_bin.open(nomefile_bin.str().c_str(), std::ios::binary | std::ios::in);
 	file_txt.open(nomefile_txt.str().c_str());
 	std::cout << "\nWelcome to the new reader" << std::endl;
-	if (argc < 1){
+    std::cout << "I will read the file: " << nomefile_bin << std::endl;
+    if (argc < 1){
 		printf("USAGE: reader input_file (options: -cutx $value -integratex) \n");
 	}
 
