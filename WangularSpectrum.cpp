@@ -21,13 +21,12 @@ int main(int narg, char **args)
 {
 	int k, n, i, FLAG_number = 0, FLAG_log = 0, count = 0;
 	double gamma, gammamin, E, m, angle;
-	double *bin, Emin, Emax, dE, norm, weight = 1;
+  double *bin, thetaMin, thetaMax, dTheta, norm, weight = 1;
 	Dfloat ptr[COMPONENTI];
 	FILE *f = fopen(args[1], "r");
 	FILE *h;
 	char nome[200];
 	int Nbin;
-	int FLAG_P = 1;		// warning: non viene letta e quindi vale sempre 1
 
 	if (narg < 6)
 	{
@@ -35,8 +34,8 @@ int main(int narg, char **args)
 		exit(0);
 	}
 
-	sscanf(args[2], "%lf", &Emin);
-	sscanf(args[3], "%lf", &Emax);
+  sscanf(args[2], "%lf", &thetaMin);
+  sscanf(args[3], "%lf", &thetaMax);
 	sscanf(args[4], "%i", &Nbin);
 	sscanf(args[5], "%lf", &gammamin);
 	for (i = 6; i < narg; i++)
@@ -47,8 +46,6 @@ int main(int narg, char **args)
 			FLAG_number = 1;
 		if (!strncmp(args[i], "-w", 2))
 			weight = atof(args[i + 1]);
-
-
 	}
 	sprintf(nome, "angularSpectrum_%s", args[1]);
 	h = fopen(nome, "w");
@@ -56,25 +53,22 @@ int main(int narg, char **args)
 	bin = (double*)malloc(Nbin*sizeof(double));
 	memset((void*)bin, 0, Nbin*sizeof(double));
 
-	dE = (Emax - Emin) / Nbin;
+  dTheta = (thetaMax - thetaMin) / Nbin;
 	n = 0;
-	if (FLAG_P == 1)
-		m = m_proton;
-	if (FLAG_P == 0)
-		m = m_electron;
+
 	while (1)
 	{
 		fread(ptr, sizeof(Dfloat), COMPONENTI, f);
 		//fscanf(f, "%lf %lf", &angle, &gamma);
 		if (feof(f)) break;
 		gamma = sqrt(1 + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1;
-		angle = atan2(ptr[5] / gamma, ptr[3] / gamma) * 180 / M_PI;
+    angle = atan2(ptr[4], ptr[3]) * 180 / M_PI;
 		count++;
 
-		if (angle >= Emin && angle<Emax&& gamma>gammamin)
+    if (angle >= thetaMin && angle<thetaMax&& gamma>gammamin)
 		{
-			k = (int)((angle - Emin) / dE);
-			bin[k] += weight / dE;
+      k = (int)((angle - thetaMin) / dTheta);
+      bin[k] += weight / dTheta;
 			n++;
 		}
 		if (!(count % 10000))
@@ -85,7 +79,7 @@ int main(int narg, char **args)
 
 	norm = 0;
 	for (k = 0; k < Nbin; k++)
-		norm += bin[k] * dE;
+    norm += bin[k] * dTheta;
 
 
 	if (FLAG_number == 1)
@@ -97,7 +91,7 @@ int main(int narg, char **args)
 
 	for (k = 0; k < Nbin; k++)
 	{
-		E = Emin + dE*(k + 0.5);
+    E = thetaMin + dTheta*(k + 0.5);
 		if (FLAG_log == 1)
 			fprintf(h, "%e %e \n", E, log10(bin[k] + 1e-6));
 		else
