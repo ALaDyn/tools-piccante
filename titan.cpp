@@ -84,7 +84,7 @@ double mass;
 
 bool flag_vtk=false;
 
-#define NUM_QUANTITIES 8
+#define NUM_QUANTITIES 9
 #define VERY_BIG_POS_NUM +1.0e30
 #define VERY_BIG_NEG_NUM -1.0e30
 std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot"};
@@ -866,7 +866,7 @@ void read_next_extremes(std::ifstream& myFile,long numreader){
     }
 
     float* fbuf = (float*)buffer;
-    float components[9];
+    float components[NUM_QUANTITIES];
 
     for(long i = 0; i < numreader; i++){
         components[0]=fbuf[7*i+0];//x
