@@ -75,20 +75,15 @@ int main(int narg, char **args)
 
     if (ptr[coord] >= rMin && ptr[coord]<rMax&& gamma>gammamin)
     {
-      k = (int)((angle - rMin) / deltaR);
+      k = (int)((ptr[coord] - rMin) / deltaR);
       bin[k] += weight / deltaR;
       n++;
     }
-    if (!(count % 10000))
+    if (!(count % 100000))
       printf("count=%i\r", count),
       fflush(stdout);
   }
-  printf("\n");
-
-  norm = 0;
-  for (k = 0; k < Nbin; k++)
-    norm += bin[k] * deltaR;
-
+  printf("\n letto tutto! \n");
 
 
   for (k = 0; k < Nbin; k++)
