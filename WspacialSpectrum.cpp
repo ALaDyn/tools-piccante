@@ -21,7 +21,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 int main(int narg, char **args)
 {
   int k, n, i, FLAG_number = 0, FLAG_log = 0, count = 0, coord;
-  double gamma, gammamin, E, m, angle;
+  double gamma, gammamin, E, m, angle, anglemin, anglemax;
   double *bin, rMin, rMax, deltaR, norm, weight = 1;
   Dfloat ptr[COMPONENTI];
   FILE *f = fopen(args[1], "r");
@@ -31,7 +31,8 @@ int main(int narg, char **args)
 
   if (narg < 6)
   {
-    printf("-----usage:  spacialSpectrum   file_name   xmin   xmax coords (0,1,2)   Nbin   gammamin\n");
+    printf("-----usage:  spacialSpectrum   file_name   rmin   rmax coords(0,1,2)   Nbin   gammamin\n");
+    printf("-----option:  -anglemin $ANGLEMIN -anglemax $ANGLEMAX\n");
     exit(0);
   }
 
@@ -48,6 +49,10 @@ int main(int narg, char **args)
       FLAG_number = 1;
     if (!strncmp(args[i], "-w", 2))
       weight = atof(args[i + 1]);
+    if (!strncmp(args[i], "-anglemin", 9))
+      anglemin = atof(args[i + 1]);
+    if (!strncmp(args[i], "-anglemax", 9))
+      anglemax = atof(args[i + 1]);
   }
   char coordName[3][2]={"x","y","z"};
   sprintf(nome, "spacialSpectrum_%s_%s", coordName[coord], args[1]);
