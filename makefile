@@ -11,14 +11,18 @@ EXE2 = WangularSpectrum
 EXE3 = WenergySpectrum
 EXE4 = WsliceDaBinario
 EXE5 = lightReader
+EXE6 = WspacialSpectrum
+
 
 SRC1 = newReader.cpp
 SRC2 = WangularSpectrum.cpp
 SRC3 = WenergySpectrum.cpp
 SRC4 = WsliceDaBinario.cpp
 SRC5 = lightReader.cpp
+SRC6 = WspacialSpectrum.cpp
 
-all : $(EXE1) $(EXE2) $(EXE3) $(EXE4)  $(EXE5) 
+
+all : $(EXE1) $(EXE2) $(EXE3) $(EXE4)  $(EXE5) $(EXE6)
 
 debug : OPT = -O0 -g 
 debug : $(EXE)
@@ -37,9 +41,12 @@ $(EXE4) : $(SRC4)
 				$(COMPILER) $(SRC4) -o $(EXE4) $(OPT)   $(LIB) 
 
 $(EXE5) : $(SRC5)
-				$(COMPILER) $(SRC5) -o $(EXE5) $(OPT)   $(LIB) 
+        $(COMPILER) $(SRC5) -o $(EXE5) $(OPT)   $(LIB)
+
+$(EXE6) : $(SRC6)
+        $(COMPILER) $(SRC6) -o $(EXE6) $(OPT)   $(LIB)
 
 clean :
-				rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5)
+        rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6)
 
 
