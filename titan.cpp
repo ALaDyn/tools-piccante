@@ -104,8 +104,8 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData);
 
 const int readLength = 1000000;
 
-double mincomponents[8];
-double maxcomponents[8];
+double mincomponents[NUM_QUANTITIES];
+double maxcomponents[NUM_QUANTITIES];
 
 int main(int narg, char **args)
 {
@@ -134,7 +134,7 @@ int main(int narg, char **args)
         drawLoadBar(0, particleTotalNumber, 30);
         std::ifstream myFile (inputfileName.c_str(), std::ios::in | std::ios::binary);
 
-        for (int i = 0; i < 8; i++){
+        for (int i = 0; i < NUM_QUANTITIES; i++){
             mincomponents[i]=VERY_BIG_POS_NUM;
             maxcomponents[i]=VERY_BIG_NEG_NUM;
         }
@@ -350,7 +350,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-firstmin"){
+          if (std::string(pszArgs[i]) == "-1min"){
               flag_first_min=true;
               if (i + 1 != nNumberofArgs){
                   first_min = atof(pszArgs[i+1]);
@@ -362,7 +362,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-secondmin"){
+          if (std::string(pszArgs[i]) == "-2min"){
               flag_second_min=true;
               if (i + 1 != nNumberofArgs){
                   second_min = atof(pszArgs[i+1]);
@@ -374,7 +374,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-thirdmin"){
+          if (std::string(pszArgs[i]) == "-3min"){
               flag_third_min=true;
               if (i + 1 != nNumberofArgs){
                   third_min = atof(pszArgs[i+1]);
@@ -388,7 +388,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
 
 
 
-          if (std::string(pszArgs[i]) == "-firstmax"){
+          if (std::string(pszArgs[i]) == "-1max"){
               flag_first_max=true;
               if (i + 1 != nNumberofArgs){
                   first_max = atof(pszArgs[i+1]);
@@ -400,7 +400,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-secondmax"){
+          if (std::string(pszArgs[i]) == "-2max"){
               flag_second_max=true;
               if (i + 1 != nNumberofArgs){
                   second_max = atof(pszArgs[i+1]);
@@ -412,7 +412,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-thirdmax"){
+          if (std::string(pszArgs[i]) == "-3max"){
               flag_third_max=true;
               if (i + 1 != nNumberofArgs){
                   third_max = atof(pszArgs[i+1]);
@@ -425,7 +425,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
           }
 
 
-          if (std::string(pszArgs[i]) == "-firstbins"){
+          if (std::string(pszArgs[i]) == "-1nbin"){
               flag_first_bins=true;
               if (i + 1 != nNumberofArgs){
                   first_bins = atoi(pszArgs[i+1]);
@@ -437,7 +437,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-secondbins"){
+          if (std::string(pszArgs[i]) == "-2nbin"){
               flag_second_bins=true;
               if (i + 1 != nNumberofArgs){
                   second_bins = atoi(pszArgs[i+1]);
@@ -449,7 +449,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-thirdbins"){
+          if (std::string(pszArgs[i]) == "-3nbin"){
               flag_third_bins=true;
               if (i + 1 != nNumberofArgs){
                   third_bins = atoi(pszArgs[i+1]);
@@ -509,7 +509,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-inputfile"){
+          if (std::string(pszArgs[i]) == "-i"){
               flag_inputfile=true;
               if (i + 1 != nNumberofArgs){
                   inputfileName = std::string(pszArgs[i+1]);
@@ -521,19 +521,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-inputfile"){
-              flag_inputfile=true;
-              if (i + 1 != nNumberofArgs){
-                  inputfileName = std::string(pszArgs[i+1]);
-                  i++;
-              }
-              else{
-                  std::cout << "ERROR: INPUTFILE not provided!" << std::endl;
-                  exit(1);
-              }
-          }
-
-          if (std::string(pszArgs[i]) == "-outputfile"){
+          if (std::string(pszArgs[i]) == "-o"){
               flag_outputfile=true;
               if (i + 1 != nNumberofArgs){
                   outputfileName = std::string(pszArgs[i+1]);
@@ -545,7 +533,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
               }
           }
 
-          if (std::string(pszArgs[i]) == "-mass"){
+          if (std::string(pszArgs[i]) == "-m"){
               flag_mass=true;
               if (i + 1 != nNumberofArgs){
                   mass = atof(pszArgs[i+1]);
@@ -878,7 +866,7 @@ void read_next_extremes(std::ifstream& myFile,long numreader){
     }
 
     float* fbuf = (float*)buffer;
-    float components[8];
+    float components[9];
 
     for(long i = 0; i < numreader; i++){
         components[0]=fbuf[7*i+0];//x
@@ -889,8 +877,9 @@ void read_next_extremes(std::ifstream& myFile,long numreader){
         components[5]=fbuf[7*i+5];//pz
         components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
         components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
+        components[8]=atan2(components[4],components[3]);
 
-        for(int j = 0; j < 8; j++){
+        for(int j = 0; j < NUM_QUANTITIES; j++){
             if(components[j]>maxcomponents[j]) maxcomponents[j]=components[j];
             if(components[j]<mincomponents[j]) mincomponents[j]=components[j];
         }
@@ -909,7 +898,7 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
     }
 
     float* fbuf = (float*)buffer;
-    float components[8];
+    float components[NUM_QUANTITIES];
     float weight;
 
     long ibin,jbin,kbin;
@@ -928,33 +917,16 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
             components[5]=fbuf[7*i+5];//pz
             components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
             components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
+            components[8]=atan2(components[4],components[3]);
             weight = fbuf[7*i+6];
 
             if(flag_with_filters){
-                if(filter_flags[0]&&(components[0]<min_filter[0] || components[0]>max_filter[0])){
+              for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
+                if(filter_flags[icomp]&&(components[icomp]<min_filter[icomp] || components[icomp]>max_filter[icomp])){
                     weight = 0;
                 }
-                else if(filter_flags[1]&&(components[1]<min_filter[1] || components[1]>max_filter[1])){
-                    weight = 0;
-                }
-                else if(filter_flags[2]&&(components[2]<min_filter[2] || components[2]>max_filter[2])){
-                    weight = 0;
-                }
-                else if(filter_flags[3]&&(components[3]<min_filter[3] || components[3]>max_filter[3])){
-                    weight = 0;
-                }
-                else if(filter_flags[4]&&(components[4]<min_filter[4] || components[4]>max_filter[4])){
-                    weight = 0;
-                }
-                else if(filter_flags[5]&&(components[5]<min_filter[5] || components[5]>max_filter[5])){
-                    weight = 0;
-                }
-                else if(filter_flags[6]&&(components[6]<min_filter[6] || components[6]>max_filter[6])){
-                    weight = 0;
-                }
-                else if(filter_flags[7]&&(components[7]<min_filter[7] || components[7]>max_filter[7])){
-                    weight = 0;
-                }
+              }
+
             }
 
 
@@ -976,34 +948,16 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
             components[5]=fbuf[7*i+5];//pz
             components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
             components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
+            components[8]=atan2(components[4],components[3]);
             weight = fbuf[7*i+6];
 
 
             if(flag_with_filters){
-                if(filter_flags[0]&&(components[0]<min_filter[0] || components[0]>max_filter[0])){
+              for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
+                if(filter_flags[icomp]&&(components[icomp]<min_filter[icomp] || components[icomp]>max_filter[icomp])){
                     weight = 0;
                 }
-                else if(filter_flags[1]&&(components[1]<min_filter[1] || components[1]>max_filter[1])){
-                    weight = 0;
-                }
-                else if(filter_flags[2]&&(components[2]<min_filter[2] || components[2]>max_filter[2])){
-                    weight = 0;
-                }
-                else if(filter_flags[3]&&(components[3]<min_filter[3] || components[3]>max_filter[3])){
-                    weight = 0;
-                }
-                else if(filter_flags[4]&&(components[4]<min_filter[4] || components[4]>max_filter[4])){
-                    weight = 0;
-                }
-                else if(filter_flags[5]&&(components[5]<min_filter[5] || components[5]>max_filter[5])){
-                    weight = 0;
-                }
-                else if(filter_flags[6]&&(components[6]<min_filter[6] || components[6]>max_filter[6])){
-                    weight = 0;
-                }
-                else if(filter_flags[7]&&(components[7]<min_filter[7] || components[7]>max_filter[7])){
-                    weight = 0;
-                }
+              }
             }
 
             kbin=0;
@@ -1023,34 +977,16 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
             components[5]=fbuf[7*i+5];//pz
             components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
             components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
+            components[8]=atan2(components[4],components[3]);
             weight = fbuf[7*i+6];
 
 
             if(flag_with_filters){
-                if(filter_flags[0]&&(components[0]<min_filter[0] || components[0]>max_filter[0])){
+              for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
+                if(filter_flags[icomp]&&(components[icomp]<min_filter[icomp] || components[icomp]>max_filter[icomp])){
                     weight = 0;
                 }
-                else if(filter_flags[1]&&(components[1]<min_filter[1] || components[1]>max_filter[1])){
-                    weight = 0;
-                }
-                else if(filter_flags[2]&&(components[2]<min_filter[2] || components[2]>max_filter[2])){
-                    weight = 0;
-                }
-                else if(filter_flags[3]&&(components[3]<min_filter[3] || components[3]>max_filter[3])){
-                    weight = 0;
-                }
-                else if(filter_flags[4]&&(components[4]<min_filter[4] || components[4]>max_filter[4])){
-                    weight = 0;
-                }
-                else if(filter_flags[5]&&(components[5]<min_filter[5] || components[5]>max_filter[5])){
-                    weight = 0;
-                }
-                else if(filter_flags[6]&&(components[6]<min_filter[6] || components[6]>max_filter[6])){
-                    weight = 0;
-                }
-                else if(filter_flags[7]&&(components[7]<min_filter[7] || components[7]>max_filter[7])){
-                    weight = 0;
-                }
+              }
             }
 
             kbin=(long)(third_bins-1)*(components[what_third]-third_min)/third_size;
