@@ -87,7 +87,7 @@ bool flag_vtk=false;
 #define NUM_QUANTITIES 9
 #define VERY_BIG_POS_NUM +1.0e30
 #define VERY_BIG_NEG_NUM -1.0e30
-std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot"};
+std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot", "theta2D"};
 bool filter_flags[NUM_QUANTITIES] = {false,false,false,false,false,false,false,false};
 double min_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0};
 double max_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0};
@@ -298,7 +298,15 @@ int main(int narg, char **args)
 
 void parseArgs(int nNumberofArgs, char* pszArgs[]){
   if(nNumberofArgs<2){
-
+    printf("USAGE:\n");
+    printf("\ttitan -i inputFile -o outputFile -1D (or) -2D (or) -3D \n");
+    printf("\t-first $FIRST_COMP -second $SECOND_COMP -third $THIRD_COMP");
+    for(int c=0; c < NUM_QUANTITIES; c ++) {
+      printf("%i=%s  ", c, quantitiesNames[c].c_str());
+    }
+    printf("\t-1min $FIRST_COMP_MIN -1max $FIRST_COMP_MAX\n");
+    printf("\t -1nbin $FIRST_COMP_NBIN\n");
+    printf("\t-filter $FILTER_COMP:$MIN:$MAX\n");
   }
   for (int i = 1; i < nNumberofArgs; i++){
     if (std::string(pszArgs[i]) == "-swap"){
