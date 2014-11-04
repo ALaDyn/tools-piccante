@@ -300,11 +300,11 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
   if(nNumberofArgs<2){
     printf("USAGE:\n");
     printf("\ttitan -i inputFile -o outputFile -1D (or) -2D (or) -3D \n");
-    printf("\t-first $FIRST_COMP -second $SECOND_COMP -third $THIRD_COMP");
+    printf("\t-first $FIRST_COMP -second $SECOND_COMP -third $THIRD_COMP\n");
     for(int c=0; c < NUM_QUANTITIES; c ++) {
       printf("%i=%s  ", c, quantitiesNames[c].c_str());
     }
-    printf("\t-1min $FIRST_COMP_MIN -1max $FIRST_COMP_MAX\n");
+    printf("\n\t-1min $FIRST_COMP_MIN -1max $FIRST_COMP_MAX\n");
     printf("\t -1nbin $FIRST_COMP_NBIN\n");
     printf("\t-filter $FILTER_COMP:$MIN:$MAX\n");
   }
