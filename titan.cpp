@@ -857,7 +857,7 @@ void swap_endian_float_array(float* in_f, int n)
   char buff;
   for(i=0;i<n;i++)
   {
-    x.irep=in_f[i];
+    x.frep=in_f[i];
     buff=x.arr[0];
     x.arr[0]=x.arr[3];
     x.arr[3]=buff;
