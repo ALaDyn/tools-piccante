@@ -889,7 +889,7 @@ void read_next_extremes(std::ifstream& myFile,long numreader){
     components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
     components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
     components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-    components[8]=atan2(components[4],components[3]);
+    components[8]=atan2(components[4],components[3])/M_PI*180;
 
     for(int j = 0; j < NUM_QUANTITIES; j++){
       if(components[j]>maxcomponents[j]) maxcomponents[j]=components[j];
@@ -929,8 +929,8 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
       components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
       components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3]);
-      weight = fbuf[NUM_COMPONENTS*i+6];
+      components[8]=atan2(components[4],components[3])/M_PI*180;
+      weight = fbuf[7*i+6];
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -960,8 +960,8 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
       components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
       components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3]);
-      weight = fbuf[NUM_COMPONENTS*i+6];
+      components[8]=atan2(components[4],components[3])/M_PI*180;
+      weight = fbuf[7*i+6];
 
 
       if(flag_with_filters){
@@ -989,8 +989,8 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
       components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
       components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3]);
-      weight = fbuf[NUM_COMPONENTS*i+6];
+      components[8]=atan2(components[4],components[3])/M_PI*180;
+      weight = fbuf[7*i+6];
 
 
       if(flag_with_filters){
