@@ -246,6 +246,7 @@ int main(const int argc, const char *argv[]){
                 }
             }
         }
+        delete[] locFields;
     }
 
   std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
