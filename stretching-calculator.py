@@ -1,10 +1,6 @@
 #!/usr/bin/python
 import math
 
-M_PI = 3.1415
-
-
-
 def stretchingFunction( xi,  ialpha):
     return  ialpha*math.tan(xi / ialpha)
 
