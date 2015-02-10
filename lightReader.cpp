@@ -171,9 +171,6 @@ int main(const int argc, const char *argv[]){
       FLAG_zmax = true;
       zmaxval = atof(argv[i + 1]);
     }
-
-
-
   }
   if(!(FLAG_lockr[0]||FLAG_lockr[1]||FLAG_lockr[2])){
     FLAG_lockr[2]=true;
