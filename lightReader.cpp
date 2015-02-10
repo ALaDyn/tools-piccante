@@ -128,7 +128,7 @@ int main(const int argc, const char *argv[]){
       FLAG_lockr[1] = true;
     }
     if (!std::strncmp(argv[i], "-lockz", 6)){
-      FLAG_lockr[1] = true;
+      FLAG_lockr[2] = true;
     }
     if (!std::strncmp(argv[i], "-integratex", 11)){
       FLAG_integratex = true;
