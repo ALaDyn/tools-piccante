@@ -1010,11 +1010,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
             weight = 0;
           }
         }
-
       }
-
-
-
       kbin=0;
       jbin=0;
       ibin = (first_bins-1)*(components[what_first]-first_min)/first_size;
@@ -1035,7 +1031,6 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[8]=atan2(components[4],components[3])/M_PI*180;
       weight = fbuf[7*i+6];
 
-
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
           if(filter_flags[icomp]&&(components[icomp]<min_filter[icomp] || components[icomp]>max_filter[icomp])){
@@ -1043,7 +1038,6 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
           }
         }
       }
-
       kbin=0;
       jbin=(second_bins-1)*(components[what_second]-second_min)/second_size;
       ibin = (first_bins-1)*(components[what_first]-first_min)/first_size;
