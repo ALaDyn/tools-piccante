@@ -175,7 +175,7 @@ int main(const int argc, const char *argv[]){
 
 
   }
-  if((!FLAG_lockr[0]||FLAG_lockr[1]||FLAG_lockr[2])){
+  if(!(FLAG_lockr[0]||FLAG_lockr[1]||FLAG_lockr[2])){
     FLAG_lockr[2]=true;
   }
 
