@@ -35,16 +35,16 @@ void swap_endian(float* in_f, size_t n)
   union {int imio; float fmio; char arr[4];}x;
   char buff;
   for(i=0;i<n;i++)
-    {
-      x.fmio=in_f[i];
-      buff=x.arr[0];
-      x.arr[0]=x.arr[3];
-      x.arr[3]=buff;
-      buff=x.arr[1];
-      x.arr[1]=x.arr[2];
-      x.arr[2]=buff;
-      in_f[i]=x.fmio;
-    }
+  {
+    x.fmio=in_f[i];
+    buff=x.arr[0];
+    x.arr[0]=x.arr[3];
+    x.arr[3]=buff;
+    buff=x.arr[1];
+    x.arr[1]=x.arr[2];
+    x.arr[2]=buff;
+    in_f[i]=x.fmio;
+  }
 }
 void swap_endian(int* in_i, int n)
 {
@@ -52,16 +52,16 @@ void swap_endian(int* in_i, int n)
   union { int imio; float fmio; char arr[4]; }x;
   char buff;
   for (i = 0; i < n; i++)
-    {
-      x.imio = in_i[i];
-      buff = x.arr[0];
-      x.arr[0] = x.arr[3];
-      x.arr[3] = buff;
-      buff = x.arr[1];
-      x.arr[1] = x.arr[2];
-      x.arr[2] = buff;
-      in_i[i] = x.imio;
-    }
+  {
+    x.imio = in_i[i];
+    buff = x.arr[0];
+    x.arr[0] = x.arr[3];
+    x.arr[3] = buff;
+    buff = x.arr[1];
+    x.arr[1] = x.arr[2];
+    x.arr[2] = buff;
+    in_i[i] = x.imio;
+  }
 }
 
 
@@ -82,12 +82,15 @@ int main(const int argc, const char *argv[]){
   bool FLAG_cutx = false;
   bool FLAG_cuty = false;
   bool FLAG_cutz = false;
-  //    bool FLAG_xmin = false; double xminval = -9999.0; int iminval = 0;
-  //    bool FLAG_xmax = false; double xmaxval = +9999.0; int imaxval = 0;
-  //    bool FLAG_ymin = false; double yminval = -9999.0; int jminval = 0;
-  //    bool FLAG_ymax = false; double ymaxval = +9999.0; int jmaxval = 0;
-  //    bool FLAG_zmin = false; double zminval = -9999.0; int kminval = 0;
-  //    bool FLAG_zmax = false; double zmaxval = +9999.0; int kmaxval = 0;
+  int iminval[] = {0,0,0};
+  int imaxval[] = {0,0,0};
+
+  bool FLAG_xmin = false; double xminval = -9999.0;
+  bool FLAG_xmax = false; double xmaxval = +9999.0;
+  bool FLAG_ymin = false; double yminval = -9999.0;
+  bool FLAG_ymax = false; double ymaxval = +9999.0;
+  bool FLAG_zmin = false; double zminval = -9999.0;
+  bool FLAG_zmax = false; double zmaxval = +9999.0;
 
   bool doSwap;
   int isFileBigEndian;
@@ -110,37 +113,71 @@ int main(const int argc, const char *argv[]){
   std::cout << "\nWelcome to the new reader" << std::endl;
   std::cout << "I will read the file: " << nomefile_bin.str() << std::endl;
   if (argc < 1){
-      printf("USAGE: reader input_file \n");
-    }
+    printf("USAGE: reader input_file \n");
+  }
 
   if (file_bin.fail()){
-      std::cout << "Input file non trovato" << std::endl;
-      return -3;
-    }
+    std::cout << "Input file non trovato" << std::endl;
+    return -3;
+  }
   for (int i = 2; i < argc; i++){
-      if (!std::strncmp(argv[i], "-lockx", 6)){
-          FLAG_lockr[0] = true;
-        }
-      if (!std::strncmp(argv[i], "-locky", 6)){
-          FLAG_lockr[1] = true;
-        }
-      if (!std::strncmp(argv[i], "-lockz", 6)){
-          FLAG_lockr[1] = true;
-        }
-      if (!std::strncmp(argv[i], "-integratex", 11)){
-          FLAG_integratex = true;
-        }
-
-      if (!std::strncmp(argv[i], "-cuty", 5)){
-          valueCuty = atof(argv[i + 1]);
-          FLAG_cuty = true;
-        }
-
-
+    if (!std::strncmp(argv[i], "-lockx", 6)){
+      FLAG_lockr[0] = true;
     }
+    if (!std::strncmp(argv[i], "-locky", 6)){
+      FLAG_lockr[1] = true;
+    }
+    if (!std::strncmp(argv[i], "-lockz", 6)){
+      FLAG_lockr[1] = true;
+    }
+    if (!std::strncmp(argv[i], "-integratex", 11)){
+      FLAG_integratex = true;
+    }
+
+    if (!std::strncmp(argv[i], "-cutx", 5)){
+      valueCutx = atof(argv[i + 1]);
+      FLAG_cutx = true;
+    }
+    if (!std::strncmp(argv[i], "-cuty", 5)){
+      valueCuty = atof(argv[i + 1]);
+      FLAG_cuty = true;
+    }
+    if (!std::strncmp(argv[i], "-xmin", 5)){
+      FLAG_xmin = true;
+      xminval = atof(argv[i + 1]);
+    }
+
+    if (!std::strncmp(argv[i], "-xmax", 5)){
+      FLAG_xmax = true;
+      xmaxval = atof(argv[i + 1]);
+    }
+
+    if (!std::strncmp(argv[i], "-ymin", 5)){
+      FLAG_ymin = true;
+      yminval = atof(argv[i + 1]);
+    }
+
+    if (!std::strncmp(argv[i], "-ymax", 5)){
+      FLAG_ymax = true;
+      ymaxval = atof(argv[i + 1]);
+    }
+
+    if (!std::strncmp(argv[i], "-zmin", 5)){
+      FLAG_zmin = true;
+      zminval = atof(argv[i + 1]);
+    }
+
+    if (!std::strncmp(argv[i], "-zmax", 5)){
+      FLAG_zmax = true;
+      zmaxval = atof(argv[i + 1]);
+    }
+
+
+
+  }
   if((!FLAG_lockr[0]||FLAG_lockr[1]||FLAG_lockr[2])){
-      FLAG_lockr[2]=true;
-    }
+    FLAG_lockr[2]=true;
+  }
 
   file_bin.read((char*)&isFileBigEndian, sizeof(int));
   doSwap = (isFileBigEndian!=is_big_endian());
@@ -166,10 +203,10 @@ int main(const int argc, const char *argv[]){
     swap_endian( &Ncomp, 1);
 
   for (int c = 0; c < 3; c++){
-      file_bin.read((char*)riCoords[c], Ncells[c] * sizeof(float));
-      if(doSwap)
-        swap_endian( riCoords[c], Ncells[c]);
-    }
+    file_bin.read((char*)riCoords[c], Ncells[c] * sizeof(float));
+    if(doSwap)
+      swap_endian( riCoords[c], Ncells[c]);
+  }
 
   std::cout << "IsBigEndian:  " << isFileBigEndian << "\n";
   std::cout << "Ncells:  " << Ncells[0] << "  " << Ncells[1] << "  " << Ncells[2] << "\n";
@@ -177,13 +214,36 @@ int main(const int argc, const char *argv[]){
   std::cout << "Ncomp: " << Ncomp << std::endl;
   std::cout << "sizeof long =  " << sizeof(long) << std::endl;
 
+  imaxval[0] = Ncells[0]-1;
+  imaxval[1] = Ncells[1]-1;
+  imaxval[2] = Ncells[2]-1;
+
+  if (FLAG_xmin)
+    iminval[0] = findIndexMin(xminval, riCoords[0], Ncells[0]);
+
+  if (FLAG_xmax)
+    imaxval[0] = findIndexMax(xmaxval, riCoords[0], Ncells[0]);
+
+  if (FLAG_ymin)
+    iminval[1] = findIndexMin(yminval, riCoords[1], Ncells[1]);
+
+  if (FLAG_ymax)
+    imaxval[1] = findIndexMax(ymaxval, riCoords[1], Ncells[1]);
+
+  if (FLAG_zmin)
+    iminval[2] = findIndexMin(zminval, riCoords[2], Ncells[2]);
+
+  if (FLAG_zmax)
+    imaxval[2] = findIndexMax(zmaxval, riCoords[2], Ncells[2]);
+
   int allocN[3]={Ncells[0],Ncells[1],Ncells[2]};
   int lockIndex[3]={Ncells[0]/2,Ncells[1]/2,Ncells[2]/2};
   for(int c=0; c<3; c++)
     if(FLAG_lockr[c]){
-        allocN[c]=1;
-        lockIndex[c]=Ncells[c]/2;
-      }
+      allocN[c]=1;
+      lockIndex[c]=Ncells[c]/2;
+
+    }
   for(int c=0; c<3; c++)
     printf("FLAG_lockr[%i] = %i  allocN[%i] = %i   lockIndex[%i]=%i \n", c, FLAG_lockr[c], c, allocN[c], c, lockIndex[c]);
 
@@ -195,58 +255,57 @@ int main(const int argc, const char *argv[]){
 
 
   for (int rank = 0; rank < Nproc; rank++){
-      file_bin.read((char*)locOrigin, 3 * sizeof(int));
-      if(doSwap)
-        swap_endian( locOrigin,3);
+    file_bin.read((char*)locOrigin, 3 * sizeof(int));
+    if(doSwap)
+      swap_endian( locOrigin,3);
 
-      file_bin.read((char*)locNcells, 3 * sizeof(int));
-      if(doSwap)
-        swap_endian( locNcells,3);
+    file_bin.read((char*)locNcells, 3 * sizeof(int));
+    if(doSwap)
+      swap_endian( locNcells,3);
 
-      //        std::cout << "rank= " << rank << "  ";
-      //        //std::cout << std::endl;
-      //        std::cout << "locNcells: " << locNcells[0] << "  " << locNcells[1] << "  " << locNcells[2] << " ";
-      //        std::cout << "orign: " << locOrigin[0] << "  " << locOrigin[1] << "  " << locOrigin[2] << "\n";
-      float *locFields;
-      int locSize = Ncomp*locNcells[0] * locNcells[1] * locNcells[2];
-      locFields = new float[locSize];
-      file_bin.read((char*)locFields, locSize*sizeof(float));
-      if(doSwap)
-        swap_endian( locFields,locSize);
+    //        std::cout << "rank= " << rank << "  ";
+    //        //std::cout << std::endl;
+    //        std::cout << "locNcells: " << locNcells[0] << "  " << locNcells[1] << "  " << locNcells[2] << " ";
+    //        std::cout << "orign: " << locOrigin[0] << "  " << locOrigin[1] << "  " << locOrigin[2] << "\n";
+    float *locFields;
+    int locSize = Ncomp*locNcells[0] * locNcells[1] * locNcells[2];
+    locFields = new float[locSize];
+    file_bin.read((char*)locFields, locSize*sizeof(float));
+    if(doSwap)
+      swap_endian( locFields,locSize);
 
-      drawLoadBar(rank + 1, Nproc, Nproc, 30);
+    drawLoadBar(rank + 1, Nproc, Nproc, 30);
 
-      bool flagRead=true;
-      for (int c = 0; c < 3; c++){
-          if(FLAG_lockr[c])
-            if( locOrigin[c]<=lockIndex[c]&& ((locOrigin[c]+locNcells[c])>lockIndex[c]) )
-              flagRead = flagRead && true;
-            else
-              flagRead = false;
-        }
-
-      if(flagRead){
-          //printf("rank=%i   flagrREAD=%i\n", rank, flagRead);
-          for (int k = 0; k < locNcells[2]; k++){
-              for (int j = 0; j < locNcells[1]; j++){
-                  for (int i = 0; i < locNcells[0]; i++){
-                      for (int c = 0; c < Ncomp; c++){
-                          long ii = i + locOrigin[0];
-                          long jj = j + locOrigin[1];
-                          long kk = k + locOrigin[2];
-                          long index = c + Ncomp*ii*(!FLAG_lockr[0]) + Ncomp*allocN[0] * jj* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * kk * (!FLAG_lockr[2]);
-                          long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
-                          if(!FLAG_lockr[0] || ii==lockIndex[0])
-                            if(!FLAG_lockr[1] || jj==lockIndex[1])
-                              if(!FLAG_lockr[2] || kk==lockIndex[2])
-                                fields[index] = locFields[locIndex];
-                        }
-                    }
-                }
-            }
-        }
-        delete[] locFields;
+    bool flagRead=true;
+    for (int c = 0; c < 3; c++){
+      if(FLAG_lockr[c])
+        if( locOrigin[c]<=lockIndex[c]&& ((locOrigin[c]+locNcells[c])>lockIndex[c]) )
+          flagRead = flagRead && true;
+        else
+          flagRead = false;
     }
+
+    if(flagRead){
+      for (int k = 0; k < locNcells[2]; k++){
+        for (int j = 0; j < locNcells[1]; j++){
+          for (int i = 0; i < locNcells[0]; i++){
+            for (int c = 0; c < Ncomp; c++){
+              long ii = i + locOrigin[0];
+              long jj = j + locOrigin[1];
+              long kk = k + locOrigin[2];
+              long index = c + Ncomp*ii*(!FLAG_lockr[0]) + Ncomp*allocN[0] * jj* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * kk * (!FLAG_lockr[2]);
+              long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
+              if(!FLAG_lockr[0] || ii==lockIndex[0])
+                if(!FLAG_lockr[1] || jj==lockIndex[1])
+                  if(!FLAG_lockr[2] || kk==lockIndex[2])
+                    fields[index] = locFields[locIndex];
+            }
+          }
+        }
+      }
+    }
+    delete[] locFields;
+  }
 
   std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
 
@@ -254,48 +313,39 @@ int main(const int argc, const char *argv[]){
     long tipoints, tjpoints, totPts;
     tipoints=allocN[0];
     if(FLAG_lockr[0]){
-        tipoints=allocN[1];
-        tjpoints=allocN[2];
-      }
+      tipoints=allocN[1];
+      tjpoints=allocN[2];
+      iminval[0]=lockIndex[0];
+      imaxval[0]=lockIndex[0]+1;
+    }
     tjpoints=allocN[1];
     if(FLAG_lockr[1]){
-        tjpoints=allocN[2];
-      }
+      tjpoints=allocN[2];
+      iminval[1]=lockIndex[1];
+      imaxval[1]=lockIndex[1]+1;
+    }
+    iminval[2]=0;
+    imaxval[2]=allocN[2];
     totPts=tipoints*tjpoints;
 
     for(int c=0; c < 3; c++)
       printf("allocN[%i] = %i   ", c, allocN[c]);
     printf("\n");
-    for (long k = 0; k <allocN[2] ; k++){
-        long kk=k;
-        if(FLAG_lockr[2])
-          kk= lockIndex[2];
-        for (long j = 0; j <allocN[1] ; j++){
-            long jj=j, jbar=j;
-            if(FLAG_lockr[1]){
-              jj= lockIndex[1];
-              jbar=k;
-              }
-            for (long i = 0; i < allocN[0]; i++){
-                long ii=i, ibar=i;
-                if(FLAG_lockr[0]){
-                  ii= lockIndex[0];
-                  ibar=j;
-                  }
-                drawLoadBar(ibar + (jbar)*tipoints + 1, totPts, tjpoints, 30);
-
-                file_txt << std::setw(12) << std::setprecision(5) << xiCoords[ii];
-                file_txt << std::setw(12) << std::setprecision(5) << yiCoords[jj];
-                file_txt << std::setw(12) << std::setprecision(5) << ziCoords[kk];
-                for (int c = 0; c < Ncomp; c++){
-                    long index = c + Ncomp*i + Ncomp*allocN[0] * j + Ncomp*allocN[0] * allocN[1] * k;
-                    file_txt << std::setw(12) << std::setprecision(5) << fields[index];
-                  }
-                file_txt << std::endl;
-              }
-            file_txt << std::endl;
+    for (long kk = iminval[2]; kk <imaxval[2] ; kk++){
+      for (long jj = iminval[1]; jj <imaxval[1] ; jj++){
+        for (long ii = iminval[0]; ii <imaxval[0]; ii++){
+          file_txt << std::setw(12) << std::setprecision(5) << xiCoords[ii];
+          file_txt << std::setw(12) << std::setprecision(5) << yiCoords[jj];
+          file_txt << std::setw(12) << std::setprecision(5) << ziCoords[kk];
+          for (int c = 0; c < Ncomp; c++){
+            long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
+            file_txt << std::setw(12) << std::setprecision(5) << fields[index];
           }
+          file_txt << std::endl;
+        }
+        file_txt << std::endl;
       }
+    }
   }
   std::cout << std::endl;
 
@@ -328,11 +378,11 @@ inline void drawLoadBar(long i, long Ntot, long R, int sizeBar){
 
   int j;
   for (j = 0; j < numSymbols; j++){
-      std::cout << "=";
-    }
+    std::cout << "=";
+  }
   for (; j < sizeBar; j++){
-      std::cout << " ";
-    }
+    std::cout << " ";
+  }
 
   std::cout << "]";
   std::cout.flush();
@@ -347,9 +397,9 @@ int findIndexMin (double val, float* coords, int numcoords){
     return 0;
 
   for (int i = 1; i < numcoords; i++){
-      if (val < coords[i])
-        return (i-1);
-    }
+    if (val < coords[i])
+      return (i-1);
+  }
 
 }
 
@@ -361,9 +411,9 @@ int findIndexMax (double val, float* coords, int numcoords){
     return (numcoords-1);
 
   for (int i = (numcoords-1); i >= 0; i--){
-      if (val > coords[i])
-        return (i+1);
-    }
+    if (val > coords[i])
+      return (i+1);
+  }
 
 
 }

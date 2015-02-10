@@ -174,14 +174,15 @@ int main(int narg, char **args)
   int readings = myparticlesToRead/readLength;
   int reminder = myparticlesToRead%readLength;
   int maxReadings = 0;
-  for (int i = 0; i < fileGroup.nProc; i++){
-    if (i < fileGroup.myRank)
-      disp+=particlesToRead[i]*NUM_COMPONENTS*sizeof(float);
 
+
+  for (int i = 0; i < fileGroup.myRank; i++){
+      disp+=particlesToRead[i]*NUM_COMPONENTS*sizeof(float);
+  }
+  for (int i = 0; i < fileGroup.nProc; i++){
     int ireadings =particlesToRead[i]/readLength;
     if(ireadings>maxReadings)
       maxReadings=ireadings;
-
   }
   delete[] particlesToRead;
 
