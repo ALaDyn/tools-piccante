@@ -310,23 +310,19 @@ int main(const int argc, const char *argv[]){
   std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
 
   {
-    long tipoints, tjpoints, totPts;
-    tipoints=allocN[0];
     if(FLAG_lockr[0]){
-      tipoints=allocN[1];
-      tjpoints=allocN[2];
       iminval[0]=lockIndex[0];
       imaxval[0]=lockIndex[0]+1;
-    }
-    tjpoints=allocN[1];
-    if(FLAG_lockr[1]){
-      tjpoints=allocN[2];
+    }    
+    if(FLAG_lockr[1]){     
       iminval[1]=lockIndex[1];
       imaxval[1]=lockIndex[1]+1;
+    }    
+    if(FLAG_lockr[2]){
+      iminval[2]=lockIndex[2];
+      imaxval[2]=lockIndex[2]+1;
     }
-    iminval[2]=0;
-    imaxval[2]=allocN[2];
-    totPts=tipoints*tjpoints;
+
 
     for(int c=0; c < 3; c++)
       printf("allocN[%i] = %i   ", c, allocN[c]);
