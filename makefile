@@ -1,4 +1,5 @@
 COMPILER = g++
+MPICOMPILER = mpic++
 EXE = piccante
 
 OPT = -O3 -std=c++0x
@@ -13,6 +14,7 @@ EXE4 = WsliceDaBinario
 EXE5 = lightReader
 EXE6 = WspacialSpectrum
 EXE7 = titan
+EXE8 = MPItitan
 
 SRC1 = newReader.cpp
 SRC2 = WangularSpectrum.cpp
@@ -21,8 +23,9 @@ SRC4 = WsliceDaBinario.cpp
 SRC5 = lightReader.cpp
 SRC6 = WspacialSpectrum.cpp
 SRC7 = titan.cpp
+SRC8 = MPItitan.cpp
 
-all : $(EXE1) $(EXE2) $(EXE3) $(EXE4)  $(EXE5) $(EXE6) $(EXE7)
+all : $(EXE1) $(EXE2) $(EXE3) $(EXE4)  $(EXE5) $(EXE6) $(EXE7) $(EXE8)
 
 debug : OPT = -O0 -g 
 debug : $(EXE)
@@ -49,7 +52,10 @@ $(EXE6) : $(SRC6)
 $(EXE7) : $(SRC7)
 	$(COMPILER) $(SRC7) -o $(EXE7) $(OPT)   $(LIB)
 
+$(EXE8) : $(SRC8)
+	$(MPICOMPILER) $(SRC8) -o $(EXE8) $(OPT) $(LIB)
+
 clean :
-				rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7)
+	rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8)
 
 

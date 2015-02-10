@@ -100,8 +100,8 @@ struct parallelData{
   MPI_Comm comm;
 };
 
-void parseArgs(int narg, char **args);
-void checkFlagsConsistence();
+void parseArgs(int narg, char **args, parallelData pdata);
+void checkFlagsConsistence(parallelData pdata);
 int howManyFilesExist(std::string strippedFileName);
 long long int howLongIsInputFile(std::string fileName);
 void message(parallelData pdata, std::string msg);
@@ -111,8 +111,8 @@ long long int calcParticlesToRead(parallelData pdata, int particleTotalNumber);
 
 void swap_endian_float_array(float* in_f, int n);
 
-void read_next_extremes(std::ifstream& myFile,long long numreader);
-void read_next_plot(std::ifstream& myFile, long long numreader, double* plotData);
+void read_next_extremes(MPI_File myFile,long long numreader);
+void read_next_plot(MPI_File myFile, long long numreader, double* plotData);
 
 const int readLength = 1000000;
 
@@ -121,7 +121,7 @@ double maxcomponents[NUM_QUANTITIES];
 
 
 int main(int narg, char **args)
-{
+{ 
   MPI_Init(&narg, &args);
   parallelData world;
   MPI_Comm_rank(MPI_COMM_WORLD,&world.myRank);
@@ -129,14 +129,20 @@ int main(int narg, char **args)
   world.comm = MPI_COMM_WORLD;
 
   long long fileLengthInBytes, particleTotalNumber;
-  parseArgs(narg,args);
-  checkFlagsConsistence();
+  parseArgs(narg,args,world);
+  checkFlagsConsistence(world);
 
   int numberOfFiles = howManyFilesExist(inputfileName);
   if(numberOfFiles <= 0)
     errorMessage(world, "Input file not found");
 
-  int fileId = world.myRank/numberOfFiles;
+  if(numberOfFiles>world.nProc){
+    std::stringstream ss;
+    ss << "Too many files! " << "( " << numberOfFiles << " > " << world.nProc << " )";
+    errorMessage(world, ss.str());
+  }
+
+  int fileId = world.myRank%numberOfFiles;
 
   parallelData fileGroup;
   MPI_Comm_split(world.comm, fileId, 0, &fileGroup.comm);
@@ -146,7 +152,7 @@ int main(int narg, char **args)
   std::string fileName = composeFileName(inputfileName,fileId);
 
   fileLengthInBytes = howLongIsInputFile(fileName);
-  if(fileLengthInBytes <= 0){
+  if(fileLengthInBytes < 0){
     errorMessage(fileGroup, fileName + " not found!");
   }
   particleTotalNumber = fileLengthInBytes/(sizeof(float)*NUM_COMPONENTS);
@@ -154,6 +160,32 @@ int main(int narg, char **args)
   std::stringstream ss;
   ss << "There are: " << particleTotalNumber <<" particles in file "<<fileId<< ".";
   message(fileGroup, ss.str());
+
+  MPI_File theFile;
+  char * S = new char[fileName.length() + 1];
+  std::strcpy(S,fileName.c_str());
+
+  long long myparticlesToRead = calcParticlesToRead(fileGroup, particleTotalNumber);
+
+  long long *particlesToRead = new long long[fileGroup.nProc];
+  particlesToRead[fileGroup.myRank] = myparticlesToRead;
+  MPI_Allgather(MPI_IN_PLACE, 1, MPI_LONG_LONG_INT, particlesToRead, 1, MPI_LONG_LONG_INT, fileGroup.comm);
+  MPI_Offset disp = 0;
+  int readings = myparticlesToRead/readLength;
+  int reminder = myparticlesToRead%readLength;
+  int maxReadings = 0;
+  for (int i = 0; i < fileGroup.nProc; i++){
+    if (i < fileGroup.myRank)
+      disp+=particlesToRead[i]*NUM_COMPONENTS*sizeof(float);
+
+    int ireadings =particlesToRead[i]/readLength;
+    if(ireadings>maxReadings)
+      maxReadings=ireadings;
+
+  }
+  delete[] particlesToRead;
+
+
   if(
      !(
        (flag_1D && flag_first_min && flag_first_max)||
@@ -163,60 +195,52 @@ int main(int narg, char **args)
      ){
     message(world, "A preliminary reading is needed to find unspecified plot extremes");
 
-    long long myparticlesToRead = calcParticlesToRead(fileGroup, particleTotalNumber);
-
-    long long *particlesToRead = new long long[fileGroup.nProc];
-    particlesToRead[fileGroup.myRank] = myparticlesToRead;
-    MPI_Allgather(MPI_IN_PLACE, 1, MPI_LONG_LONG_INT, particlesToRead, 1, MPI_LONG_LONG_INT, fileGroup.comm);
-    MPI_Offset disp = 0;
-    int readings = myparticlesToRead/readLength;
-    int reminder = myparticlesToRead%readLength;
-    int maxReadings = 0;
-    for (int i = 0; i < fileGroup.nProc; i++){
-      if (i < fileGroup.myRank)
-        disp+=particlesToRead[i]*NUM_COMPONENTS*sizeof(float);
-
-      int ireadings =particlesToRead[i]/readLength;
-      if(ireadings>maxReadings)
-        maxReadings=ireadings;
-
-    }
-    delete[] particlesToRead;
-
-
-    std::ifstream myFile (inputfileName.c_str(), std::ios::in | std::ios::binary);
+    MPI_File_open(fileGroup.comm, S, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
+    MPI_File_set_view(theFile, disp, MPI_FLOAT, MPI_FLOAT, (char *) "native", MPI_INFO_NULL);
 
     for (int i = 0; i < NUM_QUANTITIES; i++){
       mincomponents[i]=VERY_BIG_POS_NUM;
       maxcomponents[i]=VERY_BIG_NEG_NUM;
     }
 
-    for (long long i = 0; i < readings; i++){
-      read_next_extremes(myFile,readLength);
+    for (int i = 0; i < readings; i++){
+      read_next_extremes(theFile,readLength);
     }
-    read_next_extremes(myFile,reminder);
+    read_next_extremes(theFile,reminder);
+    for (int i = 0;i < maxReadings-readings; i++){
+      read_next_extremes(theFile, 0);
+    }
 
-    std::cout << std::endl;
-    myFile.close();
-    std::cout << "End of the preliminary reading" << std::endl;
-    std::cout<<"NEW LIMITS:"<<std::endl;
+    MPI_Allreduce(MPI_IN_PLACE, mincomponents, NUM_QUANTITIES, MPI_DOUBLE, MPI_MIN, world.comm);
+    MPI_Allreduce(MPI_IN_PLACE, maxcomponents, NUM_QUANTITIES, MPI_DOUBLE, MPI_MAX, world.comm);
+
+    MPI_File_close(&theFile);
+
+    std::stringstream ss;
+
+    ss << std::endl;
+
+    ss << "End of the preliminary reading" << std::endl;
+    ss <<"NEW LIMITS:"<<std::endl;
 
     if (flag_1D || flag_2D || flag_3D){
       if(!flag_first_min)first_min=mincomponents[what_first];
       if(!flag_first_max)first_max=maxcomponents[what_first];
-      std::cout << "First quantity plot limits: " << first_min << " -- " << first_max << std::endl;
+      ss << "First quantity plot limits: " << first_min << " -- " << first_max << std::endl;
     }
     if (flag_2D || flag_3D){
       if(!flag_second_min)second_min=mincomponents[what_second];
       if(!flag_second_max)second_max=maxcomponents[what_second];
-      std::cout << "Second quantity plot limits: " << second_min << " -- " << second_max << std::endl;
+      ss << "Second quantity plot limits: " << second_min << " -- " << second_max << std::endl;
     }
     if (flag_3D){
       if(!flag_third_min)third_min=mincomponents[what_third];
       if(!flag_third_max)third_max=maxcomponents[what_third];
-      std::cout << "Third quantity plot limits: " << third_min << " -- " << third_max << std::endl;
+      ss << "Third quantity plot limits: " << third_min << " -- " << third_max << std::endl;
     }
-    std::cout << "Plot limits will be increased by a 5%" << std::endl;
+    ss << "Plot limits will be increased by a 5%" << std::endl;
+
+    message(world, ss.str());
 
     first_min-=0.05*first_min;
     first_max+=0.05*first_max;
@@ -231,19 +255,16 @@ int main(int narg, char **args)
   }
 
   if(first_min>=first_max){
-    std::cout << "ERROR! First quantity limits error"<<std::endl;
-    exit(1);
+    errorMessage(world, "First quantity limits error");
   }
   if((flag_2D||flag_3D)&&(second_min>=second_max)){
-    std::cout << "ERROR! Second quantity limits error"<<std::endl;
-    exit(1);
+    errorMessage(world, "Second quantity limits error");
   }
   if(flag_3D&&(third_min>=third_max)){
-    std::cout << "ERROR! Third quantity limits error"<<std::endl;
-    exit(2);
+    errorMessage(world, "Third quantity limits error");
   }
 
-  std::cout<<"Preparing plot data..."<<std::endl;
+  message(world, "Preparing plot data...");
 
   if(flag_1D){
     second_bins = 1;
@@ -262,82 +283,91 @@ int main(int narg, char **args)
         plotData[i+j*first_bins+k*first_bins*second_bins] = 0.0;
       }
 
-  long long readings = particleTotalNumber/readLength;
-  long long reminder = particleTotalNumber-readings*readLength;
+  MPI_File_open(fileGroup.comm, S, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
+  MPI_File_set_view(theFile, disp, MPI_FLOAT, MPI_FLOAT, (char *) "native", MPI_INFO_NULL);
 
-  std::ifstream myFile (inputfileName.c_str(), std::ios::in | std::ios::binary);
-  for (long long i = 0; i < readings; i++){
-    read_next_plot(myFile,readLength,plotData);
+  for (int i = 0; i < readings; i++){
+    read_next_plot(theFile,readLength,plotData);
   }
-  read_next_plot(myFile,reminder,plotData);
-  std::cout << std::endl;
-  myFile.close();
-  std::cout<<"Writing plot data on disk..."<<std::endl;
-
-  std::ofstream outfile;
-
-
-  if(flag_1D){
-    outfile.open(outputfileName.c_str());
-
-    long long j = 0;
-    long long k = 0;
-    for (long long i = 0; i < first_bins; i++){
-      double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
-      outfile << fcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
-    }
-    outfile.close();
+  read_next_plot(theFile, reminder,plotData);
+  for (int i = 0; i < maxReadings-readings; i++){
+    read_next_plot(theFile,readLength,plotData);
   }
-  else if(flag_2D){
-    outfile.open(outputfileName.c_str());
 
-    long long k = 0;
-    for (long long j = 0; j < second_bins; j++)
-      for (long long i = 0; i < first_bins; i++){
-        double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
-        double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
-        outfile << fcoord << " " << scoord << " "<< plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
-      }
-    outfile.close();
-  }
-  else if(flag_3D)
-  {
-    if(!flag_vtk)
-    {
+  MPI_Allreduce(MPI_IN_PLACE, plotData, first_bins*second_bins*third_bins, MPI_DOUBLE, MPI_SUM, world.comm);
+
+  MPI_File_close(&theFile);
+  ss.str(std::string());
+  ss << std::endl;
+  ss<<"Writing plot data on disk..."<<std::endl;
+  message(world,ss.str());
+
+  if(world.myRank == 0){
+
+    std::ofstream outfile;
+
+    if(flag_1D){
       outfile.open(outputfileName.c_str());
 
-      for (long long k = 0; k < third_bins; k++)
-        for (long long j = 0; j < second_bins; j++)
-          for (long long i = 0; i < first_bins; i++){
-            double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
-            double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
-            double tcoord = (k + k + 1)*0.5/third_bins*(third_max-third_min)+third_min;
-            outfile << fcoord << " " << scoord << " "<< tcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
-          }
+      long long j = 0;
+      long long k = 0;
+      for (long long i = 0; i < first_bins; i++){
+        double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
+        outfile << fcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
+      }
       outfile.close();
     }
-    else{
-      FILE *clean_fields=fopen(outputfileName.c_str(),"wb");
+    else if(flag_2D){
+      outfile.open(outputfileName.c_str());
 
-      fprintf(clean_fields, "# vtk DataFile Version 2.0\n");
-      fprintf(clean_fields, "titolo mio\n");
-      fprintf(clean_fields, "BINARY\n");
-      fprintf(clean_fields, "DATASET STRUCTURED_POINTS\n");
-      fprintf(clean_fields, "DIMENSIONS %lld %lld %lld\n", first_bins,second_bins,third_bins  );
-      fprintf(clean_fields, "ORIGIN %f %f %f\n", first_min, second_min, third_min);
-      double dx  = (first_max-first_min)/first_bins;
-      double dy = (second_max-second_min)/second_bins;
-      double dz  = (third_max-third_min)/third_bins;
-
-      fprintf(clean_fields, "SPACING %f %f %f\n", dx, dy, dz);
-      fprintf(clean_fields, "POINT_DATA %lld\n", first_bins*second_bins*third_bins);
-      fprintf(clean_fields, "SCALARS ciccio double 1\n" );
-      fprintf(clean_fields, "LOOKUP_TABLE default\n");
-      fwrite((void*)plotData, sizeof(double), first_bins*second_bins*third_bins, clean_fields);
-      fclose(clean_fields);
+      long long k = 0;
+      for (long long j = 0; j < second_bins; j++)
+        for (long long i = 0; i < first_bins; i++){
+          double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
+          double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
+          outfile << fcoord << " " << scoord << " "<< plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
+        }
+      outfile.close();
     }
-  }
+    else if(flag_3D)
+    {
+      if(!flag_vtk)
+      {
+        outfile.open(outputfileName.c_str());
 
+        for (long long k = 0; k < third_bins; k++)
+          for (long long j = 0; j < second_bins; j++)
+            for (long long i = 0; i < first_bins; i++){
+              double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
+              double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
+              double tcoord = (k + k + 1)*0.5/third_bins*(third_max-third_min)+third_min;
+              outfile << fcoord << " " << scoord << " "<< tcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
+            }
+        outfile.close();
+      }
+      else{
+        FILE *clean_fields=fopen(outputfileName.c_str(),"wb");
+
+        fprintf(clean_fields, "# vtk DataFile Version 2.0\n");
+        fprintf(clean_fields, "titolo mio\n");
+        fprintf(clean_fields, "BINARY\n");
+        fprintf(clean_fields, "DATASET STRUCTURED_POINTS\n");
+        fprintf(clean_fields, "DIMENSIONS %lld %lld %lld\n", first_bins,second_bins,third_bins  );
+        fprintf(clean_fields, "ORIGIN %f %f %f\n", first_min, second_min, third_min);
+        double dx  = (first_max-first_min)/first_bins;
+        double dy = (second_max-second_min)/second_bins;
+        double dz  = (third_max-third_min)/third_bins;
+
+        fprintf(clean_fields, "SPACING %f %f %f\n", dx, dy, dz);
+        fprintf(clean_fields, "POINT_DATA %lld\n", first_bins*second_bins*third_bins);
+        fprintf(clean_fields, "SCALARS ciccio double 1\n" );
+        fprintf(clean_fields, "LOOKUP_TABLE default\n");
+        fwrite((void*)plotData, sizeof(double), first_bins*second_bins*third_bins, clean_fields);
+        fclose(clean_fields);
+      }
+    }
+
+  }
 
 
   delete[] plotData;
@@ -346,17 +376,20 @@ int main(int narg, char **args)
 }
 
 
-void parseArgs(int nNumberofArgs, char* pszArgs[]){
+
+void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
   if(nNumberofArgs<2){
-    printf("USAGE:\n");
-    printf("\ttitan -i inputFile -o outputFile -1D (or) -2D (or) -3D \n");
-    printf("\t-first $FIRST_COMP -second $SECOND_COMP -third $THIRD_COMP\n");
+    std::stringstream ss;
+    ss << "USAGE: " << std::endl;
+    ss << "\ttitan -i inputFile -o outputFile -1D (or) -2D (or) -3D" << std::endl;
+    ss <<"\t-first $FIRST_COMP -second $SECOND_COMP -third $THIRD_COMP" << std::endl;
     for(int c=0; c < NUM_QUANTITIES; c ++) {
-      printf("%i=%s  ", c, quantitiesNames[c].c_str());
+      ss << c << " = "  << quantitiesNames[c].c_str() << std::endl;
     }
-    printf("\n\t-1min $FIRST_COMP_MIN -1max $FIRST_COMP_MAX\n");
-    printf("\t -1nbin $FIRST_COMP_NBIN\n");
-    printf("\t-filter $FILTER_COMP:$MIN:$MAX\n");
+    ss << std::endl << "\t-1min $FIRST_COMP_MIN -1max $FIRST_COMP_MAX" << std::endl;
+    ss << "\t -1nbin $FIRST_COMP_NBIN" << std::endl;
+    ss << "\t-filter $FILTER_COMP:$MIN:$MAX" << std::endl;
+    message(pdata, ss.str());
   }
   for (int i = 1; i < nNumberofArgs; i++){
     if (std::string(pszArgs[i]) == "-swap"){
@@ -381,9 +414,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         what_first = atoi(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: FIRST quantity not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "FIRST quantity not provided!");
       }
     }
 
@@ -394,8 +426,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         i++;
       }
       else{
-        std::cout << "ERROR: SECOND quantity not provided!" << std::endl;
-        exit(1);
+        errorMessage(pdata, "SECOND quantity not provided!");
       }
     }
 
@@ -405,9 +436,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         what_third = atoi(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: THIRD quantity not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "THIRD quantity not provided!");
       }
     }
 
@@ -417,9 +447,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         first_min = atof(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: FIRST min not provided!" << std::endl;
-        exit(1);
+      else{       
+        errorMessage(pdata, "FIRST min not provided!");
       }
     }
 
@@ -429,9 +458,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         second_min = atof(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: SECOND min not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "SECOND min not provided!");
       }
     }
 
@@ -441,9 +469,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         third_min = atof(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: THIRD min not provided!" << std::endl;
-        exit(1);
+      else{        
+         errorMessage(pdata, "THIRD min not provided!");
       }
     }
 
@@ -455,9 +482,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         first_max = atof(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: FIRST max not provided!" << std::endl;
-        exit(1);
+      else{       
+        errorMessage(pdata, "FIRST max not provided!");
       }
     }
 
@@ -467,9 +493,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         second_max = atof(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: SECOND max not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "SECOND max not provided!");
       }
     }
 
@@ -479,9 +504,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         third_max = atof(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: THIRD max not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "THIRD max not provided!");
       }
     }
 
@@ -492,9 +516,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         first_bins = atoi(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: FIRST bins not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "FIRST bins not provided!");
       }
     }
 
@@ -504,9 +527,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         second_bins = atoi(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: SECOND bins not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "SECOND bins not provided!");
       }
     }
 
@@ -516,9 +538,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         third_bins = atoi(pszArgs[i+1]);
         i++;
       }
-      else{
-        std::cout << "ERROR: THIRD bins not provided!" << std::endl;
-        exit(1);
+      else{        
+        errorMessage(pdata, "THIRD bins not provided!");
       }
     }
 
@@ -533,8 +554,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         std::vector<std::string> token;
         for (std::string each; std::getline(split, each, split_char); token.push_back(each));
 
-        if(token.size()!=3){
-          std::cout << "ERROR: wrong FILTER provided!" << std::endl;
+        if(token.size()!=3){          
+          errorMessage(pdata, "wrong FILTER provided!");
         }
 
 
@@ -565,8 +586,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         i++;
       }
       else{
-        std::cout << "ERROR: FILTER not provided!" << std::endl;
-        exit(1);
+        errorMessage(pdata, "FILTER not provided!");
       }
     }
 
@@ -577,8 +597,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         i++;
       }
       else{
-        std::cout << "ERROR: INPUTFILE not provided!" << std::endl;
-        exit(1);
+        errorMessage(pdata, "INPUTFILE not provided!");
       }
     }
 
@@ -589,8 +608,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         i++;
       }
       else{
-        std::cout << "ERROR: OUTPUTFILE not provided!" << std::endl;
-        exit(1);
+        errorMessage(pdata, "OUTPUTFILE not provided!");
       }
     }
 
@@ -601,8 +619,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         i++;
       }
       else{
-        std::cout << "ERROR: MASS not provided!" << std::endl;
-        exit(1);
+        errorMessage(pdata, "MASS not provided!");
       }
     }
 
@@ -612,144 +629,138 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
   }
 }
 
-void checkFlagsConsistence(){
+void checkFlagsConsistence(parallelData pdata){
+  std::stringstream ss;
   if(flag_swap){
-    std::cout << "Endianess swap: ON" << std::endl;
+    ss << "Endianess swap: ON" << std::endl;
   }
   else{
-    std::cout << "Endianess swap: OFF" << std::endl;
+    ss << "Endianess swap: OFF" << std::endl;
   }
 
   if(flag_1D){
     if(flag_2D || flag_3D){
-      std::cout << "ERROR, only one plot dimension can be chosen!" << std::endl;
-      exit(1);
+      errorMessage(pdata, "Only one plot dimension can be chosen!");
     }
-    std::cout << "Plot type: 1D" << std::endl;
+    ss << "Plot type: 1D" << std::endl;
   }
   else if(flag_2D){
     if(flag_3D){
-      std::cout << "ERROR, only one plot dimension can be chosen!" << std::endl;
-      exit(1);
+      errorMessage(pdata, "Only one plot dimension can be chosen!");
     }
-    std::cout << "Plot type: 2D" << std::endl;
+    ss << "Plot type: 2D" << std::endl;
   }
   else if(flag_3D){
-    std::cout << "Plot type: 3D" << std::endl;
+    ss << "Plot type: 3D" << std::endl;
   }
 
   if(flag_1D){
     if(flag_first){
 
       if(what_first < 0 || what_first >= NUM_QUANTITIES){
-        std::cout << "Wrong FIRST quantity setting." << std::endl;
-        exit(1);
+        errorMessage(pdata, "Wrong FIRST quantity setting.");
       }
 
-      std::cout << "First quantity: " << quantitiesNames[what_first] << std::endl;
-      std::cout << "Second quantity: --" << std::endl;
-      std::cout << "Third quantity: --" << std::endl;
+      ss << "First quantity: " << quantitiesNames[what_first] << std::endl;
+      ss << "Second quantity: --" << std::endl;
+      ss << "Third quantity: --" << std::endl;
 
-      std::cout << "First quantity plot limits: ";
+      ss << "First quantity plot limits: ";
       if(flag_first_min){
-        std::cout << first_min;
+        ss << first_min;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout << " -- ";
+      ss << " -- ";
       if(flag_first_max){
-        std::cout << first_max;
+        ss << first_max;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout<<std::endl;
+      ss<<std::endl;
       if(!flag_first_bins)
         first_bins=200;
-      std::cout << "First quantity bins: " << first_bins;
+      ss << "First quantity bins: " << first_bins;
       if(!flag_first_bins)
-        std::cout << " (DEFAULT) ";
-      std::cout<<std::endl;
+        ss << " (DEFAULT) ";
+      ss<<std::endl;
 
-      std::cout << "Second quantity plot limits: --" << std::endl;
-      std::cout << "Second quantity bins: --" << std::endl;
+      ss << "Second quantity plot limits: --" << std::endl;
+      ss << "Second quantity bins: --" << std::endl;
 
-      std::cout << "Third quantity plot limits: --" << std::endl;
-      std::cout << "Third quantity bins: --" << std::endl;
+      ss << "Third quantity plot limits: --" << std::endl;
+      ss << "Third quantity bins: --" << std::endl;
 
     }
     else{
-      std::cout << "ERROR, FIRST quantity should be provided for 1D plot!" << std::endl;
-      exit(1);
+      errorMessage(pdata, "FIRST quantity should be provided for 1D plot!");
     }
   }
 
   if(flag_2D){
     if(flag_first && flag_second){
       if(what_first < 0 || what_first >= NUM_QUANTITIES){
-        std::cout << "Wrong FIRST quantity setting." << std::endl;
-        exit(1);
+        errorMessage(pdata, "Wrong FIRST quantity setting.");
       }
       if(what_second < 0 || what_second >= NUM_QUANTITIES){
-        std::cout << "Wrong SECOND quantity setting." << std::endl;
-        exit(1);
+        errorMessage(pdata, "Wrong SECOND quantity setting.");
       }
 
-      std::cout << "First quantity: " << quantitiesNames[what_first] << std::endl;
-      std::cout << "Second quantity: " << quantitiesNames[what_second] << std::endl;
-      std::cout << "Third quantity: --" << std::endl;
+      ss << "First quantity: " << quantitiesNames[what_first] << std::endl;
+      ss << "Second quantity: " << quantitiesNames[what_second] << std::endl;
+      ss << "Third quantity: --" << std::endl;
 
-      std::cout << "First quantity plot limits: ";
+      ss << "First quantity plot limits: ";
       if(flag_first_min){
-        std::cout << first_min;
+        ss << first_min;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout << " -- ";
+      ss << " -- ";
       if(flag_first_max){
-        std::cout << first_max;
+        ss << first_max;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout<<std::endl;
+      ss<<std::endl;
       if(!flag_first_bins)
         first_bins=200;
-      std::cout << "First quantity bins: " << first_bins;
+      ss << "First quantity bins: " << first_bins;
       if(!flag_first_bins)
-        std::cout << " (DEFAULT) ";
-      std::cout<<std::endl;
+        ss << " (DEFAULT) ";
+      ss<<std::endl;
 
-      std::cout << "Second quantity plot limits: ";
+      ss << "Second quantity plot limits: ";
       if(flag_second_min){
-        std::cout << second_min;
+        ss << second_min;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout << " -- ";
+      ss << " -- ";
       if(flag_second_max){
-        std::cout << second_max;
+        ss << second_max;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout<<std::endl;
+      ss<<std::endl;
       if(!flag_second_bins)
         second_bins=200;
-      std::cout << "Second quantity bins: " << second_bins;
+      ss << "Second quantity bins: " << second_bins;
       if(!flag_second_bins)
-        std::cout << " (DEFAULT) ";
-      std::cout<<std::endl;
+        ss << " (DEFAULT) ";
+      ss<<std::endl;
 
-      std::cout << "Third quantity plot limits: --" << std::endl;
-      std::cout << "Third quantity bins: --" << std::endl;
+      ss << "Third quantity plot limits: --" << std::endl;
+      ss << "Third quantity bins: --" << std::endl;
     }
     else{
-      std::cout << "ERROR, FIRST and SECOND quantities should be provided for 2D plot!" << std::endl;
-      exit(1);
+      errorMessage(pdata, "FIRST and SECOND quantities should be provided for 2D plot!");
     }
   }
 
@@ -757,96 +768,92 @@ void checkFlagsConsistence(){
     if(flag_first && flag_second && flag_third){
 
       if(what_first < 0 || what_first >= NUM_QUANTITIES){
-        std::cout << "Wrong FIRST quantity setting." << std::endl;
-        exit(1);
+        errorMessage(pdata, "Wrong FIRST quantity setting.");
       }
       if(what_second < 0 || what_second >= NUM_QUANTITIES){
-        std::cout << "Wrong SECOND quantity setting." << std::endl;
-        exit(1);
+        errorMessage(pdata, "Wrong SECOND quantity setting.");
       }
-      if(what_third < 0 || what_third>= NUM_QUANTITIES){
-        std::cout << "Wrong THIRD quantity setting." << std::endl;
-        exit(1);
+      if(what_third < 0 || what_third>= NUM_QUANTITIES){        
+        errorMessage(pdata, "Wrong THIRD quantity setting.");
       }
 
-      std::cout << "First quantity: " << quantitiesNames[what_first] << std::endl;
-      std::cout << "Second quantity: " << quantitiesNames[what_second] << std::endl;
-      std::cout << "Third quantity: " << quantitiesNames[what_third] << std::endl;
+      ss << "First quantity: " << quantitiesNames[what_first] << std::endl;
+      ss << "Second quantity: " << quantitiesNames[what_second] << std::endl;
+      ss << "Third quantity: " << quantitiesNames[what_third] << std::endl;
 
-      std::cout << "First quantity plot limits: ";
+      ss << "First quantity plot limits: ";
       if(flag_first_min){
-        std::cout << first_min;
+        ss << first_min;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout << " -- ";
+      ss << " -- ";
       if(flag_first_max){
-        std::cout << first_max;
+        ss << first_max;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout<<std::endl;
+      ss<<std::endl;
       if(!flag_first_bins)
         first_bins=200;
-      std::cout << "First quantity bins: " << first_bins;
+      ss << "First quantity bins: " << first_bins;
       if(!flag_first_bins)
-        std::cout << " (DEFAULT) ";
-      std::cout<<std::endl;
+        ss << " (DEFAULT) ";
+      ss<<std::endl;
 
-      std::cout << "Second quantity plot limits: ";
+      ss << "Second quantity plot limits: ";
       if(flag_second_min){
-        std::cout << second_min;
+        ss << second_min;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout << " -- ";
+      ss << " -- ";
       if(flag_second_max){
-        std::cout << second_max;
+        ss << second_max;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout<<std::endl;
+      ss<<std::endl;
       if(!flag_second_bins)
         second_bins=200;
-      std::cout << "Second quantity bins: " << second_bins;
+      ss << "Second quantity bins: " << second_bins;
       if(!flag_second_bins)
-        std::cout << " (DEFAULT) ";
-      std::cout<<std::endl;
+        ss << " (DEFAULT) ";
+      ss<<std::endl;
 
-      std::cout << "Third quantity plot limits: ";
+      ss << "Third quantity plot limits: ";
       if(flag_third_min){
-        std::cout << third_min;
+        ss << third_min;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout << " -- ";
+      ss << " -- ";
       if(flag_third_max){
-        std::cout << third_max;
+        ss << third_max;
       }
       else{
-        std::cout << "NO LIMIT";
+        ss << "NO LIMIT";
       }
-      std::cout<<std::endl;
+      ss<<std::endl;
       if(!flag_third_bins)
         third_bins=200;
-      std::cout << "Third quantity bins: " << third_bins;
+      ss << "Third quantity bins: " << third_bins;
       if(!flag_third_bins)
-        std::cout << " (DEFAULT) ";
-      std::cout<<std::endl;
+        ss << " (DEFAULT) ";
+      ss<<std::endl;
     }
     else{
-      std::cout << "ERROR, FIRST, SECOND and THIRD quantities should be provided for 3D plot!" << std::endl;
-      exit(1);
+      errorMessage(pdata, "FIRST, SECOND and THIRD quantities should be provided for 3D plot!");
     }
   }
 
   if(flag_inputfile && inputfileName!=""){
-    std::cout << "Input file: " << inputfileName << std::endl;
+    ss << "Input file: " << inputfileName << std::endl;
   }
   else{
     std::cout << "Input file not provided!" << std::endl;
@@ -854,7 +861,7 @@ void checkFlagsConsistence(){
   }
 
   if(flag_outputfile && outputfileName!=""){
-    std::cout << "Output file: " << outputfileName << std::endl;
+    ss << "Output file: " << outputfileName << std::endl;
   }
   else{
     std::cout << "Output file not provided!" << std::endl;
@@ -862,17 +869,18 @@ void checkFlagsConsistence(){
   }
 
   if(flag_mass){
-    std::cout << "Particle mass: " << mass << std::endl;
+    ss << "Particle mass: " << mass << std::endl;
   }
   else{
     mass = 1.0;
-    std::cout << "Particle mass: " << mass << " (DEFAULT)" << std::endl;
+    ss << "Particle mass: " << mass << " (DEFAULT)" << std::endl;
   }
 
   if(flag_with_filters){
     for (std::vector<filter>::iterator it = filterList.begin() ; it != filterList.end(); ++it){
       filter fil = *it;
       if(filter_flags[fil.on_what]){
+
         std::cout << "Error! Multiple filter !" << std::endl;
         exit(1);
       }
@@ -882,15 +890,14 @@ void checkFlagsConsistence(){
       min_filter[fil.on_what]=(fil.is_there_minval)?(fil.minval):(VERY_BIG_NEG_NUM);
 
       if(max_filter[fil.on_what]<min_filter[fil.on_what]){
-        std::cout << "Error in filter definition!" << std::endl;
-        exit(1);
+        errorMessage(pdata, "Error in filter definition!");
       }
 
-      std::cout << "Filter on " << quantitiesNames[fil.on_what] << " : " <<  min_filter[fil.on_what] << " -- " << max_filter[fil.on_what];
-      std::cout << std::endl;
+      ss << "Filter on " << quantitiesNames[fil.on_what] << " : " <<  min_filter[fil.on_what] << " -- " << max_filter[fil.on_what];
+      ss << std::endl;
     }
   }
-
+  message(pdata,ss.str());
 }
 
 long long howLongIsInputFile(std::string fileName){
@@ -918,9 +925,16 @@ void swap_endian_float_array(float* in_f, int n)
   }
 }
 
-void read_next_extremes(std::ifstream& myFile,long long numreader){
+void read_next_extremes(MPI_File myFile,long long numreader){
   char* buffer = new char[numreader*sizeof(float)*NUM_COMPONENTS];
-  myFile.read(buffer, numreader*sizeof(float)*NUM_COMPONENTS);
+
+  MPI_Status status;
+  if (numreader < 0)
+    numreader = 0;
+  MPI_File_read_all(myFile, buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, &status );
+
+  if(numreader == 0)
+    return;
 
   if(flag_swap){
     swap_endian_float_array((float*)buffer,NUM_COMPONENTS*numreader);
@@ -950,9 +964,16 @@ void read_next_extremes(std::ifstream& myFile,long long numreader){
   delete[] buffer;
 }
 
-void read_next_plot(std::ifstream& myFile, long long numreader, double* plotData){
+void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
   char* buffer = new char[numreader*sizeof(float)*NUM_COMPONENTS];
-  myFile.read(buffer, numreader*sizeof(float)*NUM_COMPONENTS);
+
+  MPI_Status status;
+  if (numreader < 0)
+    numreader = 0;
+  MPI_File_read_all(myFile, buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, &status );
+
+  if(numreader == 0)
+    return;
 
   if(flag_swap){
     swap_endian_float_array((float*)buffer,NUM_COMPONENTS*numreader);
@@ -1066,7 +1087,7 @@ int howManyFilesExist(std::string strippedFileName){
   int fID = 0;
   bool hMFEflag = true;
 
-  while(hMFEflag){
+  while(hMFEflag){ 
     std::ifstream infile(composeFileName(strippedFileName, fID));
     if(infile.good()){
       counter++;
@@ -1101,7 +1122,7 @@ void errorMessage(parallelData pdata, std::string msg){
 std::string composeFileName(std::string strippedFileName, int fileId){
   const int numZeroes = 5;
   std::stringstream ss;
-  ss << strippedFileName << std::setfill('0') << std::setw(numZeroes) << fileId;
+  ss << strippedFileName <<"."<< std::setfill('0') << std::setw(numZeroes) << fileId;
 
   return ss.str();
 }
