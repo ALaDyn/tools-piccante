@@ -550,7 +550,9 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         filter new_filter;
 
         char split_char = ':';
-        std::istringstream split(std::string(pszArgs[i+1]));
+	std::string bstring;
+	bstring = std::string(pszArgs[i+1]);
+        std::istringstream split(bstring);
         std::vector<std::string> token;
         for (std::string each; std::getline(split, each, split_char); token.push_back(each));
 
@@ -1088,7 +1090,9 @@ int howManyFilesExist(std::string strippedFileName){
   bool hMFEflag = true;
 
   while(hMFEflag){ 
-    std::ifstream infile(composeFileName(strippedFileName, fID));
+    std::string bstring = composeFileName(strippedFileName, fID);
+    std::ifstream infile;
+    infile.open(bstring.c_str());
     if(infile.good()){
       counter++;
       fID++;
