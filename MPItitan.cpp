@@ -957,7 +957,7 @@ void read_next_extremes(MPI_File myFile,long long numreader){
     components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
     components[8]=atan2(components[4],components[3])/M_PI*180;
     double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-    components[9]=atan2(rr, components[5])/M_PI*180;
+    components[9]=atan2(components[5],rr)/M_PI*180;
 
     for(int j = 0; j < NUM_QUANTITIES; j++){
       if(components[j]>maxcomponents[j]) maxcomponents[j]=components[j];
@@ -1006,7 +1006,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
       components[8]=atan2(components[4],components[3])/M_PI*180;
       double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(rr, components[5])/M_PI*180;
+      components[9]=atan2(components[5],rr)/M_PI*180;
       weight = fbuf[NUM_COMPONENTS*i+6];
 
       if(flag_with_filters){
@@ -1035,7 +1035,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
       components[8]=atan2(components[4],components[3])/M_PI*180;
       double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(rr, components[5])/M_PI*180;
+      components[9]=atan2(components[5],rr)/M_PI*180;
       weight = fbuf[NUM_COMPONENTS*i+6];
 
       if(flag_with_filters){
@@ -1064,7 +1064,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
       components[8]=atan2(components[4],components[3])/M_PI*180;
       double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(rr, components[5])/M_PI*180;
+      components[9]=atan2(components[5],rr)/M_PI*180;
       weight = fbuf[NUM_COMPONENTS*i+6];
 
       if(flag_with_filters){
