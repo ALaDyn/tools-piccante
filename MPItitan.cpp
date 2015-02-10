@@ -86,13 +86,13 @@ double mass;
 bool flag_vtk=false;
 
 #define NUM_COMPONENTS 7
-#define NUM_QUANTITIES 9
+#define NUM_QUANTITIES 10
 #define VERY_BIG_POS_NUM +1.0e30
 #define VERY_BIG_NEG_NUM -1.0e30
-std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot", "theta2D"};
-bool filter_flags[NUM_QUANTITIES] = {false,false,false,false,false,false,false,false};
-double min_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0};
-double max_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0};
+std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot", "thetaXY", "thetaYZ"};
+bool filter_flags[NUM_QUANTITIES] = {false,false,false,false,false,false,false,false, false};
+double min_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0,0};
+double max_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0,0};
 
 struct parallelData{
   int myRank;
@@ -955,6 +955,7 @@ void read_next_extremes(MPI_File myFile,long long numreader){
     components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
     components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
     components[8]=atan2(components[4],components[3])/M_PI*180;
+    components[9]=atan2(components[5],components[4])/M_PI*180;
 
     for(int j = 0; j < NUM_QUANTITIES; j++){
       if(components[j]>maxcomponents[j]) maxcomponents[j]=components[j];
@@ -1002,7 +1003,8 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
       components[8]=atan2(components[4],components[3])/M_PI*180;
-      weight = fbuf[7*i+6];
+      components[9]=atan2(components[5],components[4])/M_PI*180;
+      weight = fbuf[NUM_COMPONENTS*i+6];
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -1029,7 +1031,8 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
       components[8]=atan2(components[4],components[3])/M_PI*180;
-      weight = fbuf[7*i+6];
+      components[9]=atan2(components[5],components[4])/M_PI*180;
+      weight = fbuf[NUM_COMPONENTS*i+6];
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -1056,8 +1059,8 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
       components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
       components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
       components[8]=atan2(components[4],components[3])/M_PI*180;
-      weight = fbuf[7*i+6];
-
+      components[9]=atan2(components[5],components[4])/M_PI*180;
+      weight = fbuf[NUM_COMPONENTS*i+6];
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
