@@ -89,7 +89,7 @@ bool flag_vtk=false;
 #define NUM_QUANTITIES 10
 #define VERY_BIG_POS_NUM +1.0e30
 #define VERY_BIG_NEG_NUM -1.0e30
-std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot", "thetaXY", "thetaYZ"};
+std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot","Ktot", "phi(X-Y)", "theta(r-Z)"};
 bool filter_flags[NUM_QUANTITIES] = {false,false,false,false,false,false,false,false, false};
 double min_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0,0};
 double max_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0,0};
