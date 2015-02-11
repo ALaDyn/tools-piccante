@@ -1,7 +1,6 @@
 COMPILER = g++
 MPICOMPILER = mpic++
 EXE = piccante
-
 OPT = -O3 -std=c++0x
 
 LFLAGS = -Wall

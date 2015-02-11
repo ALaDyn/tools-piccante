@@ -134,7 +134,15 @@ int main(const int argc, const char *argv[]){
     if (!std::strncmp(argv[i], "-integratex", 11)){
       FLAG_integratex = true;
     }
-
+    if (!std::strncmp(argv[i], "-xsampl", 7)){
+      sampling[0] = atoi(argv[i + 1]);;
+    }
+    if (!std::strncmp(argv[i], "-ysampl", 7)){
+      sampling[1] = atoi(argv[i + 1]);;
+    }
+    if (!std::strncmp(argv[i], "-zsampl", 7)){
+      sampling[2] = atoi(argv[i + 1]);;
+    }
     if (!std::strncmp(argv[i], "-cutx", 5)){
       valueCutx = atof(argv[i + 1]);
       FLAG_cutx = true;
