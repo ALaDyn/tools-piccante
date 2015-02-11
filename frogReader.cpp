@@ -372,6 +372,7 @@ int main(const int argc, const char *argv[]){
     outputfileName << std::string(argv[1]) << ".txt";
     std::ofstream file_txt;
 
+    long long int totPts = allocN[0] * allocN[1]* allocN[2];
     file_txt.open(outputfileName.str().c_str());
     for(int c=0; c < 3; c++)
       printf("allocN[%i] = %i   ", c, allocN[c]);
@@ -384,6 +385,8 @@ int main(const int argc, const char *argv[]){
           global[0] = ii*sampling[0] + iminval[0];
           global[1] = jj*sampling[1] + iminval[1];
           global[2] = kk*sampling[2] + iminval[2];
+
+          drawLoadBar(ii + (jj)*allocN[0] + kk*allocN[0]*allocN[1] + 1, totPts, allocN[0], 30);
 
           bufstream << std::setw(12) << std::setprecision(5) << xiCoords[global[0]];
           bufstream << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
