@@ -350,9 +350,9 @@ int main(const int argc, const char *argv[]){
     bufstream << "titolo mio\n";
     bufstream << "BINARY\n";
     bufstream << "DATASET STRUCTURED_POINTS\n";
-    bufstream << "DIMENSIONS " << allocN[0] << allocN[1] << allocN[2] << std::endl;
-    bufstream << "ORIGIN " << xiCoords[0] << yiCoords[0] <<  ziCoords[0] << std::endl;
-    bufstream << "SPACING " << dx << dy << dz << std::endl;
+    bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
+    bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
+    bufstream << "SPACING " << dx << "  "  << dy << "  "  << dz << std::endl;
     bufstream << "POINT_DATA " << totPts << std::endl;
     if(Ncomp==1)
       bufstream << "SCALARS scalar float 1\n";
