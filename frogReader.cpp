@@ -339,20 +339,24 @@ int main(const int argc, const char *argv[]){
     std::stringstream bufstream;
 
     long long int totPts = allocN[0] * allocN[1]* allocN[2];
-    double dx, dy, dz;
+    double dr[3];
     if(!is_big_endian)
       swap_endian(savedFields, size);
-    dx=xiCoords[sampling[0]]-xiCoords[0];
-    dy=yiCoords[sampling[1]]-yiCoords[0];
-    dz=ziCoords[sampling[2]]-ziCoords[0];
-    bufstream << "Writing the fields file\n";
+    dr[0]=xiCoords[sampling[0]]-xiCoords[0];
+    dr[1]=yiCoords[sampling[1]]-yiCoords[0];
+    dr[2]=ziCoords[sampling[2]]-ziCoords[0];
+    for(int c =0; c < 3; c++){
+      if(allocN[c]==1)
+        dr[c]=0;
+    }
+    std::cout << "Writing the fields file\n";
     bufstream << "# vtk DataFile Version 2.0\n";
     bufstream << "titolo mio\n";
     bufstream << "BINARY\n";
     bufstream << "DATASET STRUCTURED_POINTS\n";
     bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
     bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
-    bufstream << "SPACING " << dx << "  "  << dy << "  "  << dz << std::endl;
+    bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
     bufstream << "POINT_DATA " << totPts << std::endl;
     if(Ncomp==1)
       bufstream << "SCALARS scalar float 1\n";
