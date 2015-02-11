@@ -93,23 +93,36 @@ std::string quantitiesNames[NUM_QUANTITIES] = {"X","Y","Z","Px","Py","Pz","Ptot"
 bool filter_flags[NUM_QUANTITIES] = {false,false,false,false,false,false,false,false, false};
 double min_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0,0};
 double max_filter[NUM_QUANTITIES] = {0,0,0,0,0,0,0,0,0};
+#define INCREASE_PLOTEXTREMS_FACTOR 0.05
 
 struct parallelData{
   int myRank;
   int nProc;
   MPI_Comm comm;
 };
+void initializeMPIWorld(parallelData &world, int *narg, char ***args);
 
 void parseArgs(int narg, char **args, parallelData pdata);
 void checkFlagsConsistence(parallelData pdata);
+int getAndCheckFileNumber(parallelData pdata, std::string strippedFileName);
 int howManyFilesExist(std::string strippedFileName);
+long long int getAndCheckFileNumberOfParticles(parallelData pdata, std::string fileName);
 long long int howLongIsInputFile(std::string fileName);
+void splitCommunicatorFillNewParallelData(parallelData  parent, parallelData &child, int color);
 void message(parallelData pdata, std::string msg);
 void errorMessage(parallelData pdata, std::string msg);
 std::string composeFileName(std::string strippedFileName, int fileId);
-long long int calcParticlesToRead(parallelData pdata, int particleTotalNumber);
-
+long long int calcParticlesToRead(parallelData pdata, long long particleTotalNumber);
+void fillComponentsValues(float *components, float *coordinates, float &weight);
 void swap_endian_float_array(float* in_f, int n);
+void resetMinimaAndMaxima();
+void  fillNumberParticlesToRead(parallelData fileGroup, long long *particlesToRead, long long myparticlesToRead);
+MPI_Offset findDispForSetView(parallelData fileGroup,long long *particlesToRead);
+int findMaxNumberOfReadings(parallelData fileGroup, long long *particlesToRead);
+bool shouldIFindExtrems();
+std::string printPlotLimits();
+void checkMinimaConsistency(parallelData world);
+void increasePlotExtremsBy(float factor);
 
 void read_next_extremes(MPI_File myFile,long long numreader);
 void read_next_plot(MPI_File myFile, long long numreader, double* plotData);
@@ -122,87 +135,49 @@ double maxcomponents[NUM_QUANTITIES];
 
 int main(int narg, char **args)
 { 
-  MPI_Init(&narg, &args);
   parallelData world;
-  MPI_Comm_rank(MPI_COMM_WORLD,&world.myRank);
-  MPI_Comm_size(MPI_COMM_WORLD,&world.nProc);
-  world.comm = MPI_COMM_WORLD;
-
-  long long fileLengthInBytes, particleTotalNumber;
+  initializeMPIWorld(world, &narg, &args);
   parseArgs(narg,args,world);
   checkFlagsConsistence(world);
 
-  int numberOfFiles = howManyFilesExist(inputfileName);
-  if(numberOfFiles <= 0)
-    errorMessage(world, "Input file not found");
-
-  if(numberOfFiles>world.nProc){
-    std::stringstream ss;
-    ss << "Too many files! " << "( " << numberOfFiles << " > " << world.nProc << " )";
-    errorMessage(world, ss.str());
-  }
-
+  int numberOfFiles = getAndCheckFileNumber(world, inputfileName);
   int fileId = world.myRank%numberOfFiles;
 
   parallelData fileGroup;
-  MPI_Comm_split(world.comm, fileId, 0, &fileGroup.comm);
-  MPI_Comm_rank(fileGroup.comm,&fileGroup.myRank);
-  MPI_Comm_size(fileGroup.comm,&fileGroup.nProc);
+  splitCommunicatorFillNewParallelData(world, fileGroup, fileId);
 
-  std::string fileName = composeFileName(inputfileName,fileId);
+  std::string dummyString = composeFileName(inputfileName,fileId);
+  char * fileName = new char[dummyString.length() + 1];
+  std::strcpy(fileName,dummyString.c_str());
 
-  fileLengthInBytes = howLongIsInputFile(fileName);
-  if(fileLengthInBytes < 0){
-    errorMessage(fileGroup, fileName + " not found!");
+  resetMinimaAndMaxima();
+
+  int readings, reminder, maxReadings;
+  MPI_Offset disp;
+  {
+    long long particleTotalNumber = getAndCheckFileNumberOfParticles(fileGroup, fileName);
+    long long myparticlesToRead = calcParticlesToRead(fileGroup, particleTotalNumber);
+
+    long long *particlesToRead = new long long[fileGroup.nProc];
+    fillNumberParticlesToRead(fileGroup, particlesToRead, myparticlesToRead);
+
+    readings = myparticlesToRead/readLength;
+    reminder = myparticlesToRead%readLength;
+
+    disp = findDispForSetView(fileGroup,particlesToRead);
+
+    maxReadings = findMaxNumberOfReadings(fileGroup,particlesToRead);
+
+    delete[] particlesToRead;
   }
-  particleTotalNumber = fileLengthInBytes/(sizeof(float)*NUM_COMPONENTS);
-
-  std::stringstream ss;
-  ss << "There are: " << particleTotalNumber <<" particles in file "<<fileId<< ".";
-  message(fileGroup, ss.str());
-
-  MPI_File theFile;
-  char * S = new char[fileName.length() + 1];
-  std::strcpy(S,fileName.c_str());
-
-  long long myparticlesToRead = calcParticlesToRead(fileGroup, particleTotalNumber);
-
-  long long *particlesToRead = new long long[fileGroup.nProc];
-  particlesToRead[fileGroup.myRank] = myparticlesToRead;
-  MPI_Allgather(MPI_IN_PLACE, 1, MPI_LONG_LONG_INT, particlesToRead, 1, MPI_LONG_LONG_INT, fileGroup.comm);
-  MPI_Offset disp = 0;
-  int readings = myparticlesToRead/readLength;
-  int reminder = myparticlesToRead%readLength;
-  int maxReadings = 0;
 
 
-  for (int i = 0; i < fileGroup.myRank; i++){
-      disp+=particlesToRead[i]*NUM_COMPONENTS*sizeof(float);
-  }
-  for (int i = 0; i < fileGroup.nProc; i++){
-    int ireadings =particlesToRead[i]/readLength;
-    if(ireadings>maxReadings)
-      maxReadings=ireadings;
-  }
-  delete[] particlesToRead;
-
-
-  if(
-     !(
-       (flag_1D && flag_first_min && flag_first_max)||
-       (flag_2D && flag_first_min && flag_first_max && flag_second_min && flag_second_max)||
-       (flag_3D && flag_first_min && flag_first_max && flag_second_min && flag_second_max && flag_third_min && flag_third_max)
-       )
-     ){
+  if(shouldIFindExtrems()){
     message(world, "A preliminary reading is needed to find unspecified plot extremes");
 
-    MPI_File_open(fileGroup.comm, S, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
+    MPI_File theFile;
+    MPI_File_open(fileGroup.comm, fileName, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
     MPI_File_set_view(theFile, disp, MPI_FLOAT, MPI_FLOAT, (char *) "native", MPI_INFO_NULL);
-
-    for (int i = 0; i < NUM_QUANTITIES; i++){
-      mincomponents[i]=VERY_BIG_POS_NUM;
-      maxcomponents[i]=VERY_BIG_NEG_NUM;
-    }
 
     for (int i = 0; i < readings; i++){
       read_next_extremes(theFile,readLength);
@@ -211,69 +186,19 @@ int main(int narg, char **args)
     for (int i = 0;i < maxReadings-readings; i++){
       read_next_extremes(theFile, 0);
     }
+    MPI_File_close(&theFile);
 
     MPI_Allreduce(MPI_IN_PLACE, mincomponents, NUM_QUANTITIES, MPI_DOUBLE, MPI_MIN, world.comm);
     MPI_Allreduce(MPI_IN_PLACE, maxcomponents, NUM_QUANTITIES, MPI_DOUBLE, MPI_MAX, world.comm);
 
-    MPI_File_close(&theFile);
-
-    std::stringstream ss;
-
-    ss << std::endl;
-
-    ss << "End of the preliminary reading" << std::endl;
-    ss <<"NEW LIMITS:"<<std::endl;
-
-    if (flag_1D || flag_2D || flag_3D){
-      if(!flag_first_min)first_min=mincomponents[what_first];
-      if(!flag_first_max)first_max=maxcomponents[what_first];
-      ss << "First quantity plot limits: " << first_min << " -- " << first_max << std::endl;
-    }
-    if (flag_2D || flag_3D){
-      if(!flag_second_min)second_min=mincomponents[what_second];
-      if(!flag_second_max)second_max=maxcomponents[what_second];
-      ss << "Second quantity plot limits: " << second_min << " -- " << second_max << std::endl;
-    }
-    if (flag_3D){
-      if(!flag_third_min)third_min=mincomponents[what_third];
-      if(!flag_third_max)third_max=maxcomponents[what_third];
-      ss << "Third quantity plot limits: " << third_min << " -- " << third_max << std::endl;
-    }
-    ss << "Plot limits will be increased by a 5%" << std::endl;
-
-    message(world, ss.str());
-
-    first_min-=0.05*first_min;
-    first_max+=0.05*first_max;
-
-    second_min-=0.05*second_min;
-    second_max+=0.05*second_max;
-
-    third_min-=0.05*third_min;
-    third_max+=0.05*third_max;
-
-
+    std::string msgExtrems = printPlotLimits();
+    message(world, msgExtrems);
+    increasePlotExtremsBy(INCREASE_PLOTEXTREMS_FACTOR);
   }
 
-  if(first_min>=first_max){
-    errorMessage(world, "First quantity limits error");
-  }
-  if((flag_2D||flag_3D)&&(second_min>=second_max)){
-    errorMessage(world, "Second quantity limits error");
-  }
-  if(flag_3D&&(third_min>=third_max)){
-    errorMessage(world, "Third quantity limits error");
-  }
-
+  checkMinimaConsistency(world);
   message(world, "Preparing plot data...");
 
-  if(flag_1D){
-    second_bins = 1;
-    third_bins = 1;
-  }
-  else if(flag_2D){
-    third_bins = 1;
-  }
 
   double* plotData = new double[first_bins*second_bins*third_bins];
 
@@ -283,8 +208,8 @@ int main(int narg, char **args)
       {
         plotData[i+j*first_bins+k*first_bins*second_bins] = 0.0;
       }
-
-  MPI_File_open(fileGroup.comm, S, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
+  MPI_File theFile;
+  MPI_File_open(fileGroup.comm, fileName, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
   MPI_File_set_view(theFile, disp, MPI_FLOAT, MPI_FLOAT, (char *) "native", MPI_INFO_NULL);
 
   for (int i = 0; i < readings; i++){
@@ -298,6 +223,7 @@ int main(int narg, char **args)
   MPI_Allreduce(MPI_IN_PLACE, plotData, first_bins*second_bins*third_bins, MPI_DOUBLE, MPI_SUM, world.comm);
 
   MPI_File_close(&theFile);
+  std::stringstream ss;
   ss.str(std::string());
   ss << std::endl;
   ss<<"Writing plot data on disk..."<<std::endl;
@@ -380,7 +306,12 @@ int main(int narg, char **args)
   return 0;
 }
 
-
+void initializeMPIWorld(parallelData &world, int *narg, char ***args){
+  MPI_Init(narg, args);
+  MPI_Comm_rank(MPI_COMM_WORLD,&world.myRank);
+  MPI_Comm_size(MPI_COMM_WORLD,&world.nProc);
+  world.comm = MPI_COMM_WORLD;
+}
 
 void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
   if(nNumberofArgs<2){
@@ -419,7 +350,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         what_first = atoi(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "FIRST quantity not provided!");
       }
     }
@@ -441,7 +372,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         what_third = atoi(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "THIRD quantity not provided!");
       }
     }
@@ -452,7 +383,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         first_min = atof(pszArgs[i+1]);
         i++;
       }
-      else{       
+      else{
         errorMessage(pdata, "FIRST min not provided!");
       }
     }
@@ -463,7 +394,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         second_min = atof(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "SECOND min not provided!");
       }
     }
@@ -474,8 +405,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         third_min = atof(pszArgs[i+1]);
         i++;
       }
-      else{        
-         errorMessage(pdata, "THIRD min not provided!");
+      else{
+        errorMessage(pdata, "THIRD min not provided!");
       }
     }
 
@@ -487,7 +418,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         first_max = atof(pszArgs[i+1]);
         i++;
       }
-      else{       
+      else{
         errorMessage(pdata, "FIRST max not provided!");
       }
     }
@@ -498,7 +429,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         second_max = atof(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "SECOND max not provided!");
       }
     }
@@ -509,7 +440,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         third_max = atof(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "THIRD max not provided!");
       }
     }
@@ -521,7 +452,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         first_bins = atoi(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "FIRST bins not provided!");
       }
     }
@@ -532,7 +463,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         second_bins = atoi(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "SECOND bins not provided!");
       }
     }
@@ -543,7 +474,7 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         third_bins = atoi(pszArgs[i+1]);
         i++;
       }
-      else{        
+      else{
         errorMessage(pdata, "THIRD bins not provided!");
       }
     }
@@ -555,13 +486,13 @@ void parseArgs(int nNumberofArgs, char* pszArgs[], parallelData pdata){
         filter new_filter;
 
         char split_char = ':';
-	std::string bstring;
-	bstring = std::string(pszArgs[i+1]);
+        std::string bstring;
+        bstring = std::string(pszArgs[i+1]);
         std::istringstream split(bstring);
         std::vector<std::string> token;
         for (std::string each; std::getline(split, each, split_char); token.push_back(each));
 
-        if(token.size()!=3){          
+        if(token.size()!=3){
           errorMessage(pdata, "wrong FILTER provided!");
         }
 
@@ -646,12 +577,15 @@ void checkFlagsConsistence(parallelData pdata){
   }
 
   if(flag_1D){
+    second_bins = 1;
+    third_bins = 1;
     if(flag_2D || flag_3D){
       errorMessage(pdata, "Only one plot dimension can be chosen!");
     }
     ss << "Plot type: 1D" << std::endl;
   }
   else if(flag_2D){
+    third_bins = 1;
     if(flag_3D){
       errorMessage(pdata, "Only one plot dimension can be chosen!");
     }
@@ -780,7 +714,7 @@ void checkFlagsConsistence(parallelData pdata){
       if(what_second < 0 || what_second >= NUM_QUANTITIES){
         errorMessage(pdata, "Wrong SECOND quantity setting.");
       }
-      if(what_third < 0 || what_third>= NUM_QUANTITIES){        
+      if(what_third < 0 || what_third>= NUM_QUANTITIES){
         errorMessage(pdata, "Wrong THIRD quantity setting.");
       }
 
@@ -906,6 +840,19 @@ void checkFlagsConsistence(parallelData pdata){
   }
   message(pdata,ss.str());
 }
+long long int getAndCheckFileNumberOfParticles(parallelData pdata, std::string fileName){
+  long long fileLengthInBytes=howLongIsInputFile(fileName);
+  if(fileLengthInBytes < 0){
+    errorMessage(pdata, fileName + " not found!");
+  }
+  long long particleTotalNumber = fileLengthInBytes/(sizeof(float)*NUM_COMPONENTS);
+
+  std::stringstream ss;
+  ss << "There are: " << particleTotalNumber <<" particles in file "<<fileName<< ".";
+  message(pdata, ss.str());
+
+  return particleTotalNumber;
+}
 
 long long howLongIsInputFile(std::string fileName){
   std::ifstream file( fileName.c_str(), std::ios::binary | std::ios::ate);
@@ -914,8 +861,16 @@ long long howLongIsInputFile(std::string fileName){
   return length;
 }
 
+void splitCommunicatorFillNewParallelData(parallelData  parent, parallelData &child, int color){
+  MPI_Comm_split(parent.comm, color, 0, &child.comm);
+  MPI_Comm_rank(child.comm,&child.myRank);
+  MPI_Comm_size(child.comm,&child.nProc);
+}
+
 void swap_endian_float_array(float* in_f, int n)
 {
+  if(!flag_swap)
+    return;
   int i;
   union {int irep; float frep; char arr[4];}x;
   char buff;
@@ -933,62 +888,43 @@ void swap_endian_float_array(float* in_f, int n)
 }
 
 void read_next_extremes(MPI_File myFile,long long numreader){
-  char* buffer = new char[numreader*sizeof(float)*NUM_COMPONENTS];
+  float* buffer = new float[numreader*NUM_COMPONENTS];
 
-  MPI_Status status;
   if (numreader < 0)
     numreader = 0;
-  MPI_File_read_all(myFile, buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, &status );
+
+  MPI_File_read_all(myFile, (char*)buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, MPI_STATUS_IGNORE);
 
   if(numreader == 0)
     return;
 
-  if(flag_swap){
-    swap_endian_float_array((float*)buffer,NUM_COMPONENTS*numreader);
-  }
+  swap_endian_float_array(buffer,NUM_COMPONENTS*numreader);
 
-  float* fbuf = (float*)buffer;
   float components[NUM_QUANTITIES];
-
+  float weight;
   for(long long i = 0; i < numreader; i++){
-    components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-    components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-    components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-    components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-    components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-    components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-    components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-    components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-    components[8]=atan2(components[4],components[3])/M_PI*180;
-    double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-    components[9]=atan2(components[5],rr)/M_PI*180;
+    fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
-    for(int j = 0; j < NUM_QUANTITIES; j++){
-      if(components[j]>maxcomponents[j]) maxcomponents[j]=components[j];
-      if(components[j]<mincomponents[j]) mincomponents[j]=components[j];
+    for(int c = 0; c < NUM_QUANTITIES; c++){
+      if(components[c]>maxcomponents[c]) maxcomponents[c]=components[c];
+      if(components[c]<mincomponents[c]) mincomponents[c]=components[c];
     }
   }
-
-
   delete[] buffer;
 }
 
 void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
-  char* buffer = new char[numreader*sizeof(float)*NUM_COMPONENTS];
+  float* buffer = new float[numreader*NUM_COMPONENTS];
 
-  MPI_Status status;
   if (numreader < 0)
     numreader = 0;
-  MPI_File_read_all(myFile, buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, &status );
+  MPI_File_read_all(myFile, buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, MPI_STATUS_IGNORE);
 
   if(numreader == 0)
     return;
 
-  if(flag_swap){
-    swap_endian_float_array((float*)buffer,NUM_COMPONENTS*numreader);
-  }
+  swap_endian_float_array(buffer,NUM_COMPONENTS*numreader);
 
-  float* fbuf = (float*)buffer;
   float components[NUM_QUANTITIES];
   float weight;
 
@@ -1000,18 +936,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
 
   if(flag_1D){
     for(long long i = 0; i < numreader; i++){
-      components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-      components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-      components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-      components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-      components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-      components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-      components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-      components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3])/M_PI*180;
-      double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(components[5],rr)/M_PI*180;
-      weight = fbuf[NUM_COMPONENTS*i+6];
+      fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -1029,18 +954,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
   }
   else if(flag_2D){
     for(long long i = 0; i < numreader; i++){
-      components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-      components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-      components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-      components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-      components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-      components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-      components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-      components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3])/M_PI*180;
-      double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(components[5],rr)/M_PI*180;
-      weight = fbuf[NUM_COMPONENTS*i+6];
+      fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -1058,18 +972,7 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
   }
   else{
     for(long long i = 0; i < numreader; i++){
-      components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-      components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-      components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-      components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-      components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-      components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-      components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-      components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3])/M_PI*180;
-      double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(components[5],rr)/M_PI*180;
-      weight = fbuf[NUM_COMPONENTS*i+6];
+      fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -1088,14 +991,25 @@ void read_next_plot(MPI_File myFile, long long numreader, double* plotData){
   }
   delete[] buffer;
 }
+int getAndCheckFileNumber(parallelData pdata, std::string strippedFileName){
+  int fileNumber = howManyFilesExist(strippedFileName);
+  if(fileNumber <= 0)
+    errorMessage(pdata, "Input file not found");
+
+  if(fileNumber>pdata.nProc){
+    std::stringstream ss;
+    ss << "Too many files! " << "( " << fileNumber << " > " << pdata.nProc << " )";
+    errorMessage(pdata, ss.str());
+  }
+  return fileNumber;
+}
 
 int howManyFilesExist(std::string strippedFileName){
-  const int numZeroes = 5;
   int counter = 0;
   int fID = 0;
   bool hMFEflag = true;
 
-  while(hMFEflag){ 
+  while(hMFEflag){
     std::string bstring = composeFileName(strippedFileName, fID);
     std::ifstream infile;
     infile.open(bstring.c_str());
@@ -1108,6 +1022,7 @@ int howManyFilesExist(std::string strippedFileName){
       hMFEflag=false;
     }
   }
+
   return counter;
 }
 
@@ -1137,7 +1052,7 @@ std::string composeFileName(std::string strippedFileName, int fileId){
   return ss.str();
 }
 
-long long int calcParticlesToRead(parallelData pdata, int particleTotalNumber){
+long long int calcParticlesToRead(parallelData pdata, long long particleTotalNumber){
   long long numPart = particleTotalNumber/pdata.nProc;
   long long rem = particleTotalNumber%pdata.nProc;
 
@@ -1147,4 +1062,101 @@ long long int calcParticlesToRead(parallelData pdata, int particleTotalNumber){
   return numPart;
 }
 
+void fillComponentsValues(float *components, float *coordinates, float &weight){
+  components[0]=coordinates[0];//x
+  components[1]=coordinates[1];//y
+  components[2]=coordinates[2];//z
+  components[3]=coordinates[3];//px
+  components[4]=coordinates[4];//py
+  components[5]=coordinates[5];//pz
+  components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
+  components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);
+  components[8]=atan2(components[4],components[3])/M_PI*180;
+  double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
+  components[9]=atan2(components[5],rr)/M_PI*180;
+  weight = coordinates[6];
+}
 
+void resetMinimaAndMaxima(){
+  for (int i = 0; i < NUM_QUANTITIES; i++){
+    mincomponents[i]=VERY_BIG_POS_NUM;
+    maxcomponents[i]=VERY_BIG_NEG_NUM;
+  }
+}
+void  fillNumberParticlesToRead(parallelData fileGroup, long long *particlesToRead, long long myparticlesToRead){
+  particlesToRead[fileGroup.myRank] = myparticlesToRead;
+  MPI_Allgather(MPI_IN_PLACE, 1, MPI_LONG_LONG_INT, particlesToRead, 1, MPI_LONG_LONG_INT, fileGroup.comm);
+}
+
+MPI_Offset findDispForSetView(parallelData fileGroup,long long *particlesToRead){
+  MPI_Offset disp = 0;
+  for (int i = 0; i < fileGroup.myRank; i++){
+    disp+=particlesToRead[i]*NUM_COMPONENTS*sizeof(float);
+  }
+  return disp;
+}
+
+int findMaxNumberOfReadings(parallelData fileGroup, long long *particlesToRead){
+  int maxReadings = 0;
+  for (int i = 0; i < fileGroup.nProc; i++){
+    int ireadings =particlesToRead[i]/readLength;
+    if(ireadings>maxReadings)
+      maxReadings=ireadings;
+  }
+  return maxReadings;
+}
+
+bool shouldIFindExtrems(){
+  return !(
+        (flag_1D && flag_first_min && flag_first_max)||
+        (flag_2D && flag_first_min && flag_first_max && flag_second_min && flag_second_max)||
+        (flag_3D && flag_first_min && flag_first_max && flag_second_min && flag_second_max && flag_third_min && flag_third_max)
+        );
+}
+
+std::string printPlotLimits(){
+  std::stringstream ss;
+  ss << std::endl << "End of the preliminary reading" << std::endl;
+  ss <<"NEW LIMITS:"<<std::endl;
+
+  if (flag_1D || flag_2D || flag_3D){
+    if(!flag_first_min)first_min=mincomponents[what_first];
+    if(!flag_first_max)first_max=maxcomponents[what_first];
+    ss << "First quantity plot limits: " << first_min << " -- " << first_max << std::endl;
+  }
+  if (flag_2D || flag_3D){
+    if(!flag_second_min)second_min=mincomponents[what_second];
+    if(!flag_second_max)second_max=maxcomponents[what_second];
+    ss << "Second quantity plot limits: " << second_min << " -- " << second_max << std::endl;
+  }
+  if (flag_3D){
+    if(!flag_third_min)third_min=mincomponents[what_third];
+    if(!flag_third_max)third_max=maxcomponents[what_third];
+    ss << "Third quantity plot limits: " << third_min << " -- " << third_max << std::endl;
+  }
+  ss << "Plot limits will be increased by a 5%" << std::endl;
+  return ss.str();
+}
+
+void checkMinimaConsistency(parallelData world){
+  if(first_min>=first_max){
+    errorMessage(world, "First quantity limits error");
+  }
+  if((flag_2D||flag_3D)&&(second_min>=second_max)){
+    errorMessage(world, "Second quantity limits error");
+  }
+  if(flag_3D&&(third_min>=third_max)){
+    errorMessage(world, "Third quantity limits error");
+  }
+}
+
+void increasePlotExtremsBy(float factor){
+  first_min-=factor*(first_max - first_min);
+  first_max+=factor*(first_max - first_min);
+
+  second_min-=factor*(second_max - second_min);
+  second_max+=factor*(second_max - second_min);
+
+  third_min-=factor*(third_max - third_min);
+  third_max+=factor*(third_max - third_min);
+}
