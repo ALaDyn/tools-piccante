@@ -115,6 +115,7 @@ std::string composeFileName(std::string strippedFileName, int fileId);
 long long int calcParticlesToRead(parallelData pdata, long long particleTotalNumber);
 void fillComponentsValues(float *components, float *coordinates, float &weight);
 void swap_endian_float_array(float* in_f, int n);
+void swap_endian_double_array(double* in_f, int n);
 void resetMinimaAndMaxima();
 void  fillNumberParticlesToRead(parallelData fileGroup, long long *particlesToRead, long long myparticlesToRead);
 MPI_Offset findDispForSetView(parallelData fileGroup,long long *particlesToRead);
@@ -132,7 +133,7 @@ const int readLength = 1000000;
 double mincomponents[NUM_QUANTITIES];
 double maxcomponents[NUM_QUANTITIES];
 
-
+int is_big_endian();
 int main(int narg, char **args)
 { 
   parallelData world;
@@ -278,7 +279,7 @@ int main(int narg, char **args)
       }
       else{
         FILE *clean_fields=fopen(outputfileName.c_str(),"wb");
-
+        swap_endian_double_array(plotData, first_bins*second_bins*third_bins);
         fprintf(clean_fields, "# vtk DataFile Version 2.0\n");
         fprintf(clean_fields, "titolo mio\n");
         fprintf(clean_fields, "BINARY\n");
@@ -867,8 +868,7 @@ void splitCommunicatorFillNewParallelData(parallelData  parent, parallelData &ch
   MPI_Comm_size(child.comm,&child.nProc);
 }
 
-void swap_endian_float_array(float* in_f, int n)
-{
+void swap_endian_float_array(float* in_f, int n){
   if(!flag_swap)
     return;
   int i;
@@ -883,6 +883,35 @@ void swap_endian_float_array(float* in_f, int n)
     buff=x.arr[1];
     x.arr[1]=x.arr[2];
     x.arr[2]=buff;
+    in_f[i]=x.frep;
+  }
+}
+
+void swap_endian_double_array(double* in_f, int n){
+  if(is_big_endian())
+    return;
+  int i;
+  union {double frep; char arr[8];}x;
+  char buff;
+  for(i=0;i<n;i++)
+  {
+    x.frep=in_f[i];
+    buff=x.arr[0];
+    x.arr[0]=x.arr[7];
+    x.arr[7]=buff;
+
+    buff=x.arr[1];
+    x.arr[1]=x.arr[6];
+    x.arr[6]=buff;
+
+    buff=x.arr[2];
+    x.arr[2]=x.arr[5];
+    x.arr[5]=buff;
+
+    buff=x.arr[3];
+    x.arr[3]=x.arr[4];
+    x.arr[4]=buff;
+
     in_f[i]=x.frep;
   }
 }
@@ -1159,4 +1188,13 @@ void increasePlotExtremsBy(float factor){
 
   third_min-=factor*(third_max - third_min);
   third_max+=factor*(third_max - third_min);
+}
+
+int is_big_endian(){
+  union {
+    uint32_t i;
+    char c[4];
+  } bint = { 0x01020304 };
+
+  return bint.c[0] == 1;
 }
