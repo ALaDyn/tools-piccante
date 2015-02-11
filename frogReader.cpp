@@ -1,3 +1,4 @@
+
 /*******************************************************************************
 This file is part of tools_pic.
 
@@ -84,6 +85,7 @@ int main(const int argc, const char *argv[]){
   bool FLAG_cutz = false;
   int iminval[] = {0,0,0};
   int imaxval[] = {0,0,0};
+  int samplig[3] = 1;
 
   bool FLAG_xmin = false; double xminval = -9999.0;
   bool FLAG_xmax = false; double xmaxval = +9999.0;
@@ -101,7 +103,7 @@ int main(const int argc, const char *argv[]){
   int Nproc;
   int Ncomp;
   long size;
-  float *fields;
+  float *savedFields;
   int* integer_or_halfinteger;
   std::ostringstream nomefile_bin, nomefile_txt;
   nomefile_bin << std::string(argv[1]);
@@ -172,9 +174,6 @@ int main(const int argc, const char *argv[]){
       zmaxval = atof(argv[i + 1]);
     }
   }
-  if(!(FLAG_lockr[0]||FLAG_lockr[1]||FLAG_lockr[2])){
-    FLAG_lockr[2]=true;
-  }
 
   file_bin.read((char*)&isFileBigEndian, sizeof(int));
   doSwap = (isFileBigEndian!=is_big_endian());
@@ -211,9 +210,9 @@ int main(const int argc, const char *argv[]){
   std::cout << "Ncomp: " << Ncomp << std::endl;
   std::cout << "sizeof long =  " << sizeof(long) << std::endl;
 
-  imaxval[0] = Ncells[0]-1;
-  imaxval[1] = Ncells[1]-1;
-  imaxval[2] = Ncells[2]-1;
+  imaxval[0] = Ncells[0];
+  imaxval[1] = Ncells[1];
+  imaxval[2] = Ncells[2];
 
   if (FLAG_xmin)
     iminval[0] = findIndexMin(xminval, riCoords[0], Ncells[0]);
@@ -233,20 +232,25 @@ int main(const int argc, const char *argv[]){
   if (FLAG_zmax)
     imaxval[2] = findIndexMax(zmaxval, riCoords[2], Ncells[2]);
 
-  int allocN[3]={Ncells[0],Ncells[1],Ncells[2]};
+  int allocN[3];
+  for(int c=0; c <3; c++){
+    allocN[c] = (imaxval[c] - iminval[c])/samplig[c];
+  }
+
   int lockIndex[3]={Ncells[0]/2,Ncells[1]/2,Ncells[2]/2};
   for(int c=0; c<3; c++)
     if(FLAG_lockr[c]){
       allocN[c]=1;
       lockIndex[c]=Ncells[c]/2;
-
+      iminval[c] = Ncells[c]/2;
+      imaxval[c] = iminval[c] + 1;
     }
   for(int c=0; c<3; c++)
     printf("FLAG_lockr[%i] = %i  allocN[%i] = %i   lockIndex[%i]=%i \n", c, FLAG_lockr[c], c, allocN[c], c, lockIndex[c]);
 
   for(int c=0; c < 3; c++)
     size = ((long)Ncomp)*((long)allocN[0])*((long)allocN[1])*((long)allocN[2]);
-  fields = new float[size];
+  savedFields = new float[size];
 
   std::cout << "Reading ..." << std::endl; std::cout.flush();
 
@@ -264,12 +268,12 @@ int main(const int argc, const char *argv[]){
     //        //std::cout << std::endl;
     //        std::cout << "locNcells: " << locNcells[0] << "  " << locNcells[1] << "  " << locNcells[2] << " ";
     //        std::cout << "orign: " << locOrigin[0] << "  " << locOrigin[1] << "  " << locOrigin[2] << "\n";
-    float *locFields;
+    float *localFields;
     int locSize = Ncomp*locNcells[0] * locNcells[1] * locNcells[2];
-    locFields = new float[locSize];
-    file_bin.read((char*)locFields, locSize*sizeof(float));
+    localFields = new float[locSize];
+    file_bin.read((char*)localFields, locSize*sizeof(float));
     if(doSwap)
-      swap_endian( locFields,locSize);
+      swap_endian( localFields,locSize);
 
     drawLoadBar(rank + 1, Nproc, Nproc, 30);
 
@@ -283,56 +287,57 @@ int main(const int argc, const char *argv[]){
     }
 
     if(flagRead){
+      int savedI[3], globalI[3];
       for (int k = 0; k < locNcells[2]; k++){
+        globalI[2] = k + locOrigin[2];
+        savedI[2] = globalI[2]/samplig[2] - iminval[2];
+
         for (int j = 0; j < locNcells[1]; j++){
+          globalI[1] = j + locOrigin[1];
+          savedI[1] = globalI[1]/samplig[1] - iminval[1];
+
           for (int i = 0; i < locNcells[0]; i++){
+            globalI[0] = i + locOrigin[0];
+            savedI[0] = globalI[0]/samplig[0] - iminval[0];
+
             for (int c = 0; c < Ncomp; c++){
-              long ii = i + locOrigin[0];
-              long jj = j + locOrigin[1];
-              long kk = k + locOrigin[2];
-              long index = c + Ncomp*ii*(!FLAG_lockr[0]) + Ncomp*allocN[0] * jj* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * kk * (!FLAG_lockr[2]);
+              long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
               long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
-              if(!FLAG_lockr[0] || ii==lockIndex[0])
-                if(!FLAG_lockr[1] || jj==lockIndex[1])
-                  if(!FLAG_lockr[2] || kk==lockIndex[2])
-                    fields[index] = locFields[locIndex];
+
+              if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0])
+                if(globalI[1] >= iminval[1] && globalI[1] < imaxval[1])
+                  if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2])
+                    savedFields[index] = localFields[locIndex];
             }
           }
         }
       }
     }
-    delete[] locFields;
+    delete[] localFields;
   }
 
   std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
 
   {
-    if(FLAG_lockr[0]){
-      iminval[0]=lockIndex[0];
-      imaxval[0]=lockIndex[0]+1;
-    }    
-    if(FLAG_lockr[1]){     
-      iminval[1]=lockIndex[1];
-      imaxval[1]=lockIndex[1]+1;
-    }    
-    if(FLAG_lockr[2]){
-      iminval[2]=lockIndex[2];
-      imaxval[2]=lockIndex[2]+1;
-    }
 
 
     for(int c=0; c < 3; c++)
       printf("allocN[%i] = %i   ", c, allocN[c]);
     printf("\n");
-    for (long kk = iminval[2]; kk <imaxval[2] ; kk++){
-      for (long jj = iminval[1]; jj <imaxval[1] ; jj++){
-        for (long ii = iminval[0]; ii <imaxval[0]; ii++){
-          file_txt << std::setw(12) << std::setprecision(5) << xiCoords[ii];
-          file_txt << std::setw(12) << std::setprecision(5) << yiCoords[jj];
-          file_txt << std::setw(12) << std::setprecision(5) << ziCoords[kk];
+    for (long kk = 0; kk <allocN[2] ; kk++){
+      for (long jj = 0; jj <allocN[1] ; jj++){
+        for (long ii = 0; ii <allocN[0]; ii++){
+          int global[3];
+          global[0] = ii + iminval[0];
+          global[1] = jj + iminval[1];
+          global[2] = kk + iminval[2];
+
+          file_txt << std::setw(12) << std::setprecision(5) << xiCoords[global[0]];
+          file_txt << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
+          file_txt << std::setw(12) << std::setprecision(5) << ziCoords[global[2]];
           for (int c = 0; c < Ncomp; c++){
             long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
-            file_txt << std::setw(12) << std::setprecision(5) << fields[index];
+            file_txt << std::setw(12) << std::setprecision(5) << savedFields[index];
           }
           file_txt << std::endl;
         }
