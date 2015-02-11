@@ -292,28 +292,30 @@ int main(const int argc, const char *argv[]){
         else
           flagRead = false;
     }
-
+int shouldWrite[3];
     if(flagRead){
       int savedI[3], globalI[3];
       for (int k = 0; k < locNcells[2]; k++){
         globalI[2] = k + locOrigin[2];
-        savedI[2] = globalI[2]/sampling[2] - iminval[2];
-
+        savedI[2] = (globalI[2] - iminval[2])/sampling[2];
+        shouldWrite[2] = !((globalI[2] - iminval[2])%sampling[2]);
         for (int j = 0; j < locNcells[1]; j++){
           globalI[1] = j + locOrigin[1];
-          savedI[1] = globalI[1]/sampling[1] - iminval[1];
+          savedI[1] = (globalI[1] - iminval[1])/sampling[1];
+          shouldWrite[1] = !((globalI[1] - iminval[1])%sampling[1]);
 
           for (int i = 0; i < locNcells[0]; i++){
             globalI[0] = i + locOrigin[0];
-            savedI[0] = globalI[0]/sampling[0] - iminval[0];
+            savedI[0] = (globalI[0] - iminval[0])/sampling[0];
+            shouldWrite[0] = !((globalI[0] - iminval[0])%sampling[0]);
 
             for (int c = 0; c < Ncomp; c++){
               long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
               long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
 
-              if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0])
-                if(globalI[1] >= iminval[1] && globalI[1] < imaxval[1])
-                  if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2])
+              if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0] && shouldWrite[0])
+                if(globalI[1] >= iminval[1] && globalI[1] < imaxval[1] && shouldWrite[1])
+                  if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2] && shouldWrite[2])
                     savedFields[index] = localFields[locIndex];
             }
           }
