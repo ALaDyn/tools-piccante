@@ -283,15 +283,15 @@ int main(int narg, char **args)
         fprintf(clean_fields, "titolo mio\n");
         fprintf(clean_fields, "BINARY\n");
         fprintf(clean_fields, "DATASET STRUCTURED_POINTS\n");
-        fprintf(clean_fields, "DIMENSIONS %lld %lld %lld\n", third_bins,second_bins,first_bins);
-        fprintf(clean_fields, "ORIGIN %f %f %f\n", third_min, second_min, first_min);
+        fprintf(clean_fields, "DIMENSIONS %lld %lld %lld\n", first_bins,second_bins,third_bins);
+        fprintf(clean_fields, "ORIGIN %f %f %f\n", first_min, second_min, third_min);
         double dx  = (first_max-first_min)/first_bins;
         double dy = (second_max-second_min)/second_bins;
         double dz  = (third_max-third_min)/third_bins;
 
-        fprintf(clean_fields, "SPACING %f %f %f\n", dz, dy, dx);
+        fprintf(clean_fields, "SPACING %f %f %f\n", dx, dy, dz);
         fprintf(clean_fields, "POINT_DATA %lld\n", first_bins*second_bins*third_bins);
-        fprintf(clean_fields, "SCALARS dens double 1\n" );
+        fprintf(clean_fields, "SCALARS titanZYX double 1\n" );
         fprintf(clean_fields, "LOOKUP_TABLE default\n");
         fwrite((void*)plotData, sizeof(double), first_bins*second_bins*third_bins, clean_fields);
         fclose(clean_fields);
