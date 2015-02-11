@@ -1,9 +1,8 @@
 COMPILER = g++
-MPICOMPILER = mpic++
+MPICOMPILER = mpixlcxx
 EXE = piccante
-
 OPT = -O3 -std=c++0x
-
+MPI_OTP = -qipa=partition=large -qarch=qp -qtune=qp -qmaxmem=-1
 LFLAGS = -Wall
 
 LIB = 
@@ -55,7 +54,7 @@ $(EXE7) : $(SRC7)
 	$(COMPILER) $(SRC7) -o $(EXE7) $(OPT)   $(LIB)
 
 $(EXE8) : $(SRC8)
-	$(MPICOMPILER) $(SRC8) -o $(EXE8) $(OPT) $(LIB)
+	$(MPICOMPILER) $(SRC8) -o $(EXE8) $(MPI_OTP) $(LIB)
 
 $(EXE9) : $(SRC9)
 	$(COMPILER) $(SRC9) -o $(EXE9) $(OPT)   $(LIB)

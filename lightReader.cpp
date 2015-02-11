@@ -324,21 +324,25 @@ int main(const int argc, const char *argv[]){
     for(int c=0; c < 3; c++)
       printf("allocN[%i] = %i   ", c, allocN[c]);
     printf("\n");
+    std::stringstream bufstream;
+
     for (long kk = iminval[2]; kk <imaxval[2] ; kk++){
       for (long jj = iminval[1]; jj <imaxval[1] ; jj++){
         for (long ii = iminval[0]; ii <imaxval[0]; ii++){
-          file_txt << std::setw(12) << std::setprecision(5) << xiCoords[ii];
-          file_txt << std::setw(12) << std::setprecision(5) << yiCoords[jj];
-          file_txt << std::setw(12) << std::setprecision(5) << ziCoords[kk];
+          bufstream << std::setw(12) << std::setprecision(5) << xiCoords[ii];
+          bufstream << std::setw(12) << std::setprecision(5) << yiCoords[jj];
+          bufstream << std::setw(12) << std::setprecision(5) << ziCoords[kk];
           for (int c = 0; c < Ncomp; c++){
             long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
-            file_txt << std::setw(12) << std::setprecision(5) << fields[index];
+            bufstream << std::setw(12) << std::setprecision(5) << fields[index];
           }
-          file_txt << std::endl;
+          bufstream << std::endl;
         }
-        file_txt << std::endl;
+        bufstream << std::endl;
       }
     }
+    std::string bufstring = bufstream.str();
+    file_txt.write(bufstring.c_str(), bufstring.length());
   }
   std::cout << std::endl;
 

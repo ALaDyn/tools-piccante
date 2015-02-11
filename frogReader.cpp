@@ -85,7 +85,7 @@ int main(const int argc, const char *argv[]){
   bool FLAG_cutz = false;
   int iminval[] = {0,0,0};
   int imaxval[] = {0,0,0};
-  int samplig[3] = 1;
+  int sampling[3] = {1,1,1};
 
   bool FLAG_xmin = false; double xminval = -9999.0;
   bool FLAG_xmax = false; double xmaxval = +9999.0;
@@ -104,7 +104,6 @@ int main(const int argc, const char *argv[]){
   int Ncomp;
   long size;
   float *savedFields;
-  int* integer_or_halfinteger;
   std::ostringstream nomefile_bin, nomefile_txt;
   nomefile_bin << std::string(argv[1]);
   nomefile_txt << std::string(argv[1]) << ".txt";
@@ -234,7 +233,7 @@ int main(const int argc, const char *argv[]){
 
   int allocN[3];
   for(int c=0; c <3; c++){
-    allocN[c] = (imaxval[c] - iminval[c])/samplig[c];
+    allocN[c] = (imaxval[c] - iminval[c])/sampling[c];
   }
 
   int lockIndex[3]={Ncells[0]/2,Ncells[1]/2,Ncells[2]/2};
@@ -290,15 +289,15 @@ int main(const int argc, const char *argv[]){
       int savedI[3], globalI[3];
       for (int k = 0; k < locNcells[2]; k++){
         globalI[2] = k + locOrigin[2];
-        savedI[2] = globalI[2]/samplig[2] - iminval[2];
+        savedI[2] = globalI[2]/sampling[2] - iminval[2];
 
         for (int j = 0; j < locNcells[1]; j++){
           globalI[1] = j + locOrigin[1];
-          savedI[1] = globalI[1]/samplig[1] - iminval[1];
+          savedI[1] = globalI[1]/sampling[1] - iminval[1];
 
           for (int i = 0; i < locNcells[0]; i++){
             globalI[0] = i + locOrigin[0];
-            savedI[0] = globalI[0]/samplig[0] - iminval[0];
+            savedI[0] = globalI[0]/sampling[0] - iminval[0];
 
             for (int c = 0; c < Ncomp; c++){
               long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
@@ -319,11 +318,10 @@ int main(const int argc, const char *argv[]){
   std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
 
   {
-
-
     for(int c=0; c < 3; c++)
       printf("allocN[%i] = %i   ", c, allocN[c]);
     printf("\n");
+    std::stringstream bufstream;
     for (long kk = 0; kk <allocN[2] ; kk++){
       for (long jj = 0; jj <allocN[1] ; jj++){
         for (long ii = 0; ii <allocN[0]; ii++){
@@ -332,18 +330,20 @@ int main(const int argc, const char *argv[]){
           global[1] = jj + iminval[1];
           global[2] = kk + iminval[2];
 
-          file_txt << std::setw(12) << std::setprecision(5) << xiCoords[global[0]];
-          file_txt << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
-          file_txt << std::setw(12) << std::setprecision(5) << ziCoords[global[2]];
+          bufstream << std::setw(12) << std::setprecision(5) << xiCoords[global[0]];
+          bufstream << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
+          bufstream << std::setw(12) << std::setprecision(5) << ziCoords[global[2]];
           for (int c = 0; c < Ncomp; c++){
             long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
-            file_txt << std::setw(12) << std::setprecision(5) << savedFields[index];
+            bufstream << std::setw(12) << std::setprecision(5) << savedFields[index];
           }
-          file_txt << std::endl;
+          bufstream << std::endl;
         }
-        file_txt << std::endl;
+        bufstream << std::endl;
       }
     }
+    std::string bufstring = bufstream.str();
+    file_txt.write(bufstring.c_str(), bufstring.length());
   }
   std::cout << std::endl;
 
