@@ -336,9 +336,9 @@ int shouldWrite[3];
       for (long jj = 0; jj <allocN[1] ; jj++){
         for (long ii = 0; ii <allocN[0]; ii++){
           int global[3];
-          global[0] = ii + iminval[0];
-          global[1] = jj + iminval[1];
-          global[2] = kk + iminval[2];
+          global[0] = ii*sampling[0] + iminval[0];
+          global[1] = jj*sampling[1] + iminval[1];
+          global[2] = kk*sampling[2] + iminval[2];
 
           bufstream << std::setw(12) << std::setprecision(5) << xiCoords[global[0]];
           bufstream << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
