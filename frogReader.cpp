@@ -314,7 +314,7 @@ int main(const int argc, const char *argv[]){
 
             for (int c = 0; c < Ncomp; c++){
               //long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
-              long index = c*allocN[0]*allocN[1]*allocN[2] + savedI[0]*(!FLAG_lockr[0]) + allocN[0] * savedI[1]* (!FLAG_lockr[1]) +  allocN[0]*allocN[1]*savedI[2]*(!FLAG_lockr[2]);
+              long index = c*allocN[0]*allocN[1]*allocN[2] + savedI[0] + allocN[0] * savedI[1] +  allocN[0]*allocN[1]*savedI[2];
               long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
 
               if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0] && shouldWrite[0])
