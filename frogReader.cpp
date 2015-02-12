@@ -348,27 +348,30 @@ int main(const int argc, const char *argv[]){
         dr[c]=0;
     }
 
-    for (int cc = 0; cc < Ncomp; cc++){
-      outputfileName << std::string(argv[1]) << "_C" << cc << ".vtk";
-      std::ofstream file_vtk;
-      file_vtk.open(outputfileName.str().c_str());
-      std::stringstream bufstream;
+    outputfileName << std::string(argv[1]) << ".vtk";
+    std::ofstream file_vtk;
+    file_vtk.open(outputfileName.str().c_str());
+    std::stringstream bufstream;
 
-      std::cout << "Writing the fields file\n";
-      bufstream << "# vtk DataFile Version 2.0\n";
-      bufstream << "titolo mio\n";
-      bufstream << "BINARY\n";
-      bufstream << "DATASET STRUCTURED_POINTS\n";
-      bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
-      bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
-      bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
-      bufstream << "POINT_DATA " << totPts << std::endl;
-      bufstream << "SCALARS scalar "<< cc <<" float 1\n";
-      bufstream << "LOOKUP_TABLE default\n";
-      std::string bufstring = bufstream.str();
+    std::cout << "Writing the fields file\n";
+    bufstream << "# vtk DataFile Version 2.0\n";
+    bufstream << "titolo mio\n";
+    bufstream << "BINARY\n";
+    bufstream << "DATASET STRUCTURED_POINTS\n";
+    bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
+    bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
+    bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
+    bufstream << "POINT_DATA " << totPts << std::endl;
+    std::string bufstring = bufstream.str();
+    file_vtk.write(bufstring.c_str(), bufstring.length());
+
+    for (int cc = 0; cc < Ncomp; cc++){
+      std::stringstream ssbuf;
+      ssbuf << "SCALARS " << cc << " 1 " <<" float 1\n";
+      ssbuf << "LOOKUP_TABLE default\n";
+      bufstring = ssbuf.str();
       file_vtk.write(bufstring.c_str(), bufstring.length());
-      long long totAlloc = allocN[0]*allocN[1]*allocN[2];
-      file_vtk.write((char*)(&savedFields[cc*totAlloc]), sizeof(float)*totAlloc);
+      file_vtk.write((char*)(&savedFields[cc*totPts]), sizeof(float)*totPts);
       file_vtk.close();
     }
   }
