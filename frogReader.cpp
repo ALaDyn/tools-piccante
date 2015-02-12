@@ -246,6 +246,9 @@ int main(const int argc, const char *argv[]){
   int allocN[3];
   for(int c=0; c <3; c++){
     allocN[c] = (imaxval[c] - iminval[c])/sampling[c];
+    if((imaxval[c] - iminval[c])%sampling[c]){
+      allocN[c]++;
+    }
   }
 
   int lockIndex[3]={allocN[0]/2,allocN[1]/2,allocN[2]/2};
@@ -319,8 +322,13 @@ int main(const int argc, const char *argv[]){
 
               if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0] && shouldWrite[0])
                 if(globalI[1] >= iminval[1] && globalI[1] < imaxval[1] && shouldWrite[1])
-                  if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2] && shouldWrite[2])
-                    savedFields[index] = localFields[locIndex];
+                  if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2] && shouldWrite[2]){
+                    if (index >= size){
+		      std::cout<< index << "( " << size << " ) " << c << " " << i << " " << j << " " << k << " " << savedI[0] << " " << savedI[1] << " " << savedI[2] << " " << std::endl;
+			}
+                    else
+                      savedFields[index] = localFields[locIndex];
+                  }
             }
           }
         }
@@ -347,6 +355,15 @@ int main(const int argc, const char *argv[]){
       if(allocN[c]==1)
         dr[c]=0;
     }
+    std::string compNames[Ncomp];
+    if(Ncomp==1){
+      compNames[0] = "scalar";
+    }
+    else if(Ncomp==3){
+      compNames[0] = "Vx";
+      compNames[1] = "Vy";
+      compNames[2] = "Vz";
+    }
 
     outputfileName << std::string(argv[1]) << ".vtk";
     std::ofstream file_vtk;
@@ -367,18 +384,18 @@ int main(const int argc, const char *argv[]){
 
     for (int cc = 0; cc < Ncomp; cc++){
       std::stringstream ssbuf;
-      ssbuf << "SCALARS " << cc << " 1 " <<" float 1\n";
+      ssbuf << "SCALARS " << compNames[cc]  <<" float 1\n";
       ssbuf << "LOOKUP_TABLE default\n";
       bufstring = ssbuf.str();
       file_vtk.write(bufstring.c_str(), bufstring.length());
       file_vtk.write((char*)(&savedFields[cc*totPts]), sizeof(float)*totPts);
-      file_vtk.close();
     }
+    file_vtk.close();
+    
   }
   else{
     outputfileName << std::string(argv[1]) << ".txt";
     std::ofstream file_txt;
-
     long long int totPts = allocN[0] * allocN[1]* allocN[2];
     file_txt.open(outputfileName.str().c_str());
     for(int c=0; c < 3; c++)
