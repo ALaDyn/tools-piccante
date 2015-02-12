@@ -313,7 +313,8 @@ int main(const int argc, const char *argv[]){
             shouldWrite[0] = !((globalI[0] - iminval[0])%sampling[0]);
 
             for (int c = 0; c < Ncomp; c++){
-              long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
+              //long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
+              long index = c*allocN[0]*allocN[1]*allocN[2] + savedI[0]*(!FLAG_lockr[0]) + allocN[0] * savedI[1]* (!FLAG_lockr[1]) +  allocN[0]*allocN[1]*savedI[2]*(!FLAG_lockr[2]);
               long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
 
               if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0] && shouldWrite[0])
@@ -333,40 +334,43 @@ int main(const int argc, const char *argv[]){
   if(FLAG_VTK){
     printf("VTK enabled\n");
 
-    outputfileName << std::string(argv[1]) << ".vtk";
-    std::ofstream file_vtk;
-    file_vtk.open(outputfileName.str().c_str());
-    std::stringstream bufstream;
+
 
     long long int totPts = allocN[0] * allocN[1]* allocN[2];
     double dr[3];
     if(!is_big_endian)
       swap_endian(savedFields, size);
-    dr[0]=xiCoords[sampling[0]]-xiCoords[0];
-    dr[1]=yiCoords[sampling[1]]-yiCoords[0];
-    dr[2]=ziCoords[sampling[2]]-ziCoords[0];
+    dr[0]=xiCoords[sampling[iminval[0]]]-xiCoords[iminval[0];
+    dr[1]=yiCoords[sampling[iminval[1]]-yiCoords[iminval[1];
+    dr[2]=ziCoords[sampling[iminval[2]]-ziCoords[iminval[2];
     for(int c =0; c < 3; c++){
       if(allocN[c]==1)
         dr[c]=0;
     }
-    std::cout << "Writing the fields file\n";
-    bufstream << "# vtk DataFile Version 2.0\n";
-    bufstream << "titolo mio\n";
-    bufstream << "BINARY\n";
-    bufstream << "DATASET STRUCTURED_POINTS\n";
-    bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
-    bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
-    bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
-    bufstream << "POINT_DATA " << totPts << std::endl;
-    if(Ncomp==1)
-      bufstream << "SCALARS scalar float 1\n";
-    else
-      bufstream << "VECTORS field float\n";
-    bufstream << "LOOKUP_TABLE default\n";
-    std::string bufstring = bufstream.str();
-    file_vtk.write(bufstring.c_str(), bufstring.length());
-    file_vtk.write((char*)savedFields, sizeof(float)*size);
-    file_vtk.close();
+
+    for (int cc = 0; cc < Ncomp; cc++){
+      outputfileName << std::string(argv[1]) << "_C" << cc << ".vtk";
+      std::ofstream file_vtk;
+      file_vtk.open(outputfileName.str().c_str());
+      std::stringstream bufstream;
+
+      std::cout << "Writing the fields file\n";
+      bufstream << "# vtk DataFile Version 2.0\n";
+      bufstream << "titolo mio\n";
+      bufstream << "BINARY\n";
+      bufstream << "DATASET STRUCTURED_POINTS\n";
+      bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
+      bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
+      bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
+      bufstream << "POINT_DATA " << totPts << std::endl;
+      bufstream << "SCALARS scalar "<< cc <<" float 1\n";
+      bufstream << "LOOKUP_TABLE default\n";
+      std::string bufstring = bufstream.str();
+      file_vtk.write(bufstring.c_str(), bufstring.length());
+      long long totAlloc = allocN[0]*allocN[1]*allocN[2];
+      file_vtk.write((char*)(&savedFields[cc*totAlloc]), sizeof(float)*totAlloc);
+      file_vtk.close();
+    }
   }
   else{
     outputfileName << std::string(argv[1]) << ".txt";
@@ -392,7 +396,9 @@ int main(const int argc, const char *argv[]){
           bufstream << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
           bufstream << std::setw(12) << std::setprecision(5) << ziCoords[global[2]];
           for (int c = 0; c < Ncomp; c++){
-            long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
+            //long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
+            long index = c*allocN[0]*allocN[1]*allocN[2] + ii + allocN[0]*jj +  allocN[0]*allocN[1]*kk;
+
             bufstream << std::setw(12) << std::setprecision(5) << savedFields[index];
           }
           bufstream << std::endl;
