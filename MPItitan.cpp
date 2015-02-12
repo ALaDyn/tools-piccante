@@ -1192,7 +1192,7 @@ void increasePlotExtremsBy(float factor){
 
 int is_big_endian(){
   union {
-    uint32_t i;
+    int i;
     char c[4];
   } bint = { 0x01020304 };
 
