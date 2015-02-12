@@ -97,7 +97,7 @@ int main(const int argc, const char *argv[]){
   bool doSwap;
   int isFileBigEndian;
   double valueCutx; double valueCuty;
-  int allocN[3], rNproc[3], locOrigin[3], locNcells[3];
+  int dataNSize[3], rNproc[3], locOrigin[3], locNcells[3];
   float *xiCoords, *yiCoords, *ziCoords;
   float *riCoords[3];
   int Nproc;
@@ -189,17 +189,17 @@ int main(const int argc, const char *argv[]){
   file_bin.read((char*)&isFileBigEndian, sizeof(int));
   doSwap = (isFileBigEndian!=is_big_endian());
   printf("do swap? %i \n", doSwap);
-  file_bin.read((char*)allocN, 3 * sizeof(int));
+  file_bin.read((char*)dataNSize, 3 * sizeof(int));
   if(doSwap)
-    swap_endian( allocN, 3);
+    swap_endian( dataNSize, 3);
   file_bin.read((char*)rNproc, 3 * sizeof(int));
   if(doSwap)
     swap_endian( rNproc, 3);
 
   Nproc = rNproc[0] * rNproc[1] * rNproc[2];
-  xiCoords = new float[allocN[0]];
-  yiCoords = new float[allocN[1]];
-  ziCoords = new float[allocN[2]];
+  xiCoords = new float[dataNSize[0]];
+  yiCoords = new float[dataNSize[1]];
+  ziCoords = new float[dataNSize[2]];
 
   riCoords[0] = xiCoords;
   riCoords[1] = yiCoords;
@@ -210,39 +210,40 @@ int main(const int argc, const char *argv[]){
     swap_endian( &Ncomp, 1);
 
   for (int c = 0; c < 3; c++){
-    file_bin.read((char*)riCoords[c], allocN[c] * sizeof(float));
+    file_bin.read((char*)riCoords[c], dataNSize[c] * sizeof(float));
     if(doSwap)
-      swap_endian( riCoords[c], allocN[c]);
+      swap_endian( riCoords[c], dataNSize[c]);
   }
 
   std::cout << "IsBigEndian:  " << isFileBigEndian << "\n";
-  std::cout << "Ncells:  " << allocN[0] << "  " << allocN[1] << "  " << allocN[2] << "\n";
+  std::cout << "Ncells:  " << dataNSize[0] << "  " << dataNSize[1] << "  " << dataNSize[2] << "\n";
   std::cout << "Nprocs:  " << rNproc[0] << "  " << rNproc[1] << "  " << rNproc[2] << "\n";
   std::cout << "Ncomp: " << Ncomp << std::endl;
   std::cout << "sizeof long =  " << sizeof(long) << std::endl;
 
-  imaxval[0] = allocN[0];
-  imaxval[1] = allocN[1];
-  imaxval[2] = allocN[2];
+  imaxval[0] = dataNSize[0];
+  imaxval[1] = dataNSize[1];
+  imaxval[2] = dataNSize[2];
 
   if (FLAG_xmin)
-    iminval[0] = findIndexMin(xminval, riCoords[0], allocN[0]);
+    iminval[0] = findIndexMin(xminval, riCoords[0], dataNSize[0]);
 
   if (FLAG_xmax)
-    imaxval[0] = findIndexMax(xmaxval, riCoords[0], allocN[0]);
+    imaxval[0] = findIndexMax(xmaxval, riCoords[0], dataNSize[0]);
 
   if (FLAG_ymin)
-    iminval[1] = findIndexMin(yminval, riCoords[1], allocN[1]);
+    iminval[1] = findIndexMin(yminval, riCoords[1], dataNSize[1]);
 
   if (FLAG_ymax)
-    imaxval[1] = findIndexMax(ymaxval, riCoords[1], allocN[1]);
+    imaxval[1] = findIndexMax(ymaxval, riCoords[1], dataNSize[1]);
 
   if (FLAG_zmin)
-    iminval[2] = findIndexMin(zminval, riCoords[2], allocN[2]);
+    iminval[2] = findIndexMin(zminval, riCoords[2], dataNSize[2]);
 
   if (FLAG_zmax)
-    imaxval[2] = findIndexMax(zmaxval, riCoords[2], allocN[2]);
+    imaxval[2] = findIndexMax(zmaxval, riCoords[2], dataNSize[2]);
 
+  int allocN[3];
   for(int c=0; c <3; c++){
     allocN[c] = (imaxval[c] - iminval[c])/sampling[c];
   }
@@ -258,8 +259,7 @@ int main(const int argc, const char *argv[]){
   for(int c=0; c<3; c++)
     printf("FLAG_lockr[%i] = %i  allocN[%i] = %i   lockIndex[%i]=%i \n", c, FLAG_lockr[c], c, allocN[c], c, lockIndex[c]);
 
-  for(int c=0; c < 3; c++)
-    size = ((long)Ncomp)*((long)allocN[0])*((long)allocN[1])*((long)allocN[2]);
+  size = ((long)Ncomp)*((long)allocN[0])*((long)allocN[1])*((long)allocN[2]);
   savedFields = new float[size];
 
   std::cout << "Reading ..." << std::endl; std::cout.flush();
