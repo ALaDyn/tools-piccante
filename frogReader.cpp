@@ -340,9 +340,9 @@ int main(const int argc, const char *argv[]){
     double dr[3];
     if(!is_big_endian)
       swap_endian(savedFields, size);
-    dr[0]=xiCoords[sampling[iminval[0]]]-xiCoords[iminval[0];
-    dr[1]=yiCoords[sampling[iminval[1]]-yiCoords[iminval[1];
-    dr[2]=ziCoords[sampling[iminval[2]]-ziCoords[iminval[2];
+    dr[0]=xiCoords[sampling[iminval[0]]]-xiCoords[iminval[0]];
+    dr[1]=yiCoords[sampling[iminval[1]]]-yiCoords[iminval[1]];
+    dr[2]=ziCoords[sampling[iminval[2]]]-ziCoords[iminval[2]];
     for(int c =0; c < 3; c++){
       if(allocN[c]==1)
         dr[c]=0;
