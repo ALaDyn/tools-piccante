@@ -1,0 +1,4 @@
+#ifndef UTILITIESTOOLS_H
+#define UTILITIESTOOLS_H
+
+#endif // UTILITIESTOOLS_H
