@@ -28,7 +28,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 //#include <boost/random/mersenne_twister.hpp>
 //#include <boost/random/normal_distribution.hpp>
 //#include <boost/random/variate_generator.hpp>
-#define _DIMENSIONS 2
+#define _DIMENSIONS 3
 
 //typedef boost::uniform_real<> UniformRealDistribution;
 //typedef boost::mt19937 MTGenerator;
@@ -46,14 +46,17 @@ struct GRID{
   float rMin[_DIMENSIONS], rMax[_DIMENSIONS];
   float step;
   float furthestX;
-  //Generator myGenerator;
+  float threshold;
 };
 
 void initializeParticles(PARTICLE *particle, GRID *grid){
   particle->radius = grid->radius;
   particle->coord[0] = grid->furthestX + grid->step*10;
   for(int i=1; i<_DIMENSIONS; i++){
-    particle->coord[i] = grid->rMin[i] + (grid->rMax[i] - grid->rMin[i]) * (rand()*1.0/RAND_MAX);
+    float buffer = (rand()*1.0/RAND_MAX);
+    int Nx = (int)(grid->rMax[i] - grid->rMin[i])/grid->step;
+    int xint = (int)(Nx*buffer);
+    particle->coord[i] = grid->rMin[i] + xint*grid->step;
   }
 }
 
@@ -62,13 +65,70 @@ void pushDownParticle(PARTICLE *particle, GRID *grid){
 }
 
 void pushSideParticle(PARTICLE *particle, GRID *grid){
-  float angle = 2*M_PI*(rand()*1.0/RAND_MAX)-M_PI;
+  float buffer = (rand()*1.0/RAND_MAX);
+
+  float angle = 2*M_PI*buffer-M_PI;
   if(_DIMENSIONS == 2){
     particle->coord[1] += grid->step*angle/M_PI;
   }
   else if(_DIMENSIONS == 3){
     particle->coord[1] += grid->step*cos(angle);
     particle->coord[2] += grid->step*sin(angle);
+  }
+}
+
+void pushSideParticleSteps(PARTICLE *particle, GRID *grid){
+  float buffer = (rand()*1.0/RAND_MAX);
+
+  float angle = 2*M_PI*buffer-M_PI;
+  if(_DIMENSIONS == 2){
+    if(buffer<=0.5)
+      particle->coord[1] -= grid->step;
+    else
+      particle->coord[1] += grid->step;
+
+  }
+  else if(_DIMENSIONS == 3){
+    if(buffer<=0.25)
+      particle->coord[1] -= grid->step;
+    else if(buffer<=0.5)
+      particle->coord[1] += grid->step;
+    else if(buffer<=0.75)
+      particle->coord[2] -= grid->step;
+    else
+      particle->coord[2] += grid->step;
+
+  }
+}
+void pushParticleSteps(PARTICLE *particle, GRID *grid){
+
+  if(_DIMENSIONS == 2){
+    float buffer = 1.0*(rand()*1.0/RAND_MAX);
+    if(buffer<=0.45)
+      particle->coord[0] -= grid->step;
+    else if(buffer<=0.5)
+      particle->coord[0] += grid->step;
+    else if(buffer<=0.75)
+      particle->coord[1] -= grid->step;
+    else
+      particle->coord[1] += grid->step;
+
+  }
+  else if(_DIMENSIONS == 3){
+    float buffer = 3.0*(rand()*1.0/RAND_MAX);
+    if(buffer<=0.55)
+      particle->coord[0] -= grid->step;
+    else if(buffer<=1.0)
+      particle->coord[0] += grid->step;
+    else if(buffer<=1.5)
+      particle->coord[1] -= grid->step;
+    else if(buffer<=2.0)
+      particle->coord[1] += grid->step;
+    else if(buffer<=2.5)
+      particle->coord[2] -= grid->step;
+    else
+      particle->coord[2] += grid->step;
+
   }
 }
 
@@ -91,15 +151,14 @@ float distance2(PARTICLE *part1, PARTICLE *part2){
   return r2;
 }
 
-bool isParticleTouching(PARTICLE *particle, std::vector<PARTICLE> *foam){
+bool isParticleTouching(PARTICLE *particle, std::vector<PARTICLE> *foam, GRID &grid){
   float dist;
   //std::vector<PARTICLE>::const_iterator iterator;
   if(particle->coord[0]<(particle->radius))
     return true;
-  for (std::vector<PARTICLE>::reverse_iterator i = foam->rbegin();
-       i != foam->rend(); ++i){
+  for (std::vector<PARTICLE>::reverse_iterator i = foam->rbegin(); i != foam->rend(); ++i){
     dist = distance2( particle, &(*i) );
-    if(dist < (particle->radius + (*i).radius)*(particle->radius + (*i).radius))
+    if(dist < ( grid.threshold + particle->radius + (*i).radius) * (grid.threshold + particle->radius + (*i).radius) )
       return true;
 
   }
@@ -120,12 +179,13 @@ int main(int narg, char **args){
 
   for(int i=0; i<_DIMENSIONS; i++){
     grid.rMin[i] = 0.0;
-    grid.rMax[i] = 10.0;
+    grid.rMax[i] = 4.0;
   }
   grid.rMax[0] = 5;
-  grid.step = 0.05;
+  grid.step = 0.1;
   grid.radius = 0.05;
   grid.furthestX = 0;
+  grid.threshold = 0.01;
 
   std::cout << "  grid.step = " << grid.step << "  grid.radius = " << grid.radius << "\n";
   std::cout << "  foam.size()  = " << foam.size() << "    particle.coord[0] = " << particle.coord[0] << std::endl;
@@ -139,20 +199,30 @@ int main(int narg, char **args){
 
   while(foam.size()<10000){
     while(1){
+#ifdef OLD
       pushDownParticle(&particle,&grid);
-      if(isParticleTouching(&particle,&foam) ){
+      if(isParticleTouching(&particle,&foam, grid) ){
         foam.push_back(particle);
         grid.furthestX = MAX(grid.furthestX,particle.coord[0]);
         break;
       }
 
-      pushSideParticle(&particle,&grid);
+      pushSideParticleSteps(&particle,&grid);
       checkBoundaries(&particle, &grid);
-      if(isParticleTouching(&particle,&foam) ){
+      if(isParticleTouching(&particle,&foam, grid) ){
         foam.push_back(particle);
         grid.furthestX = MAX(grid.furthestX,particle.coord[0]);
         break;
       }
+#else
+      pushParticleSteps(&particle,&grid);
+      checkBoundaries(&particle, &grid);
+      if(isParticleTouching(&particle,&foam, grid) ){
+        foam.push_back(particle);
+        grid.furthestX = MAX(grid.furthestX,particle.coord[0]);
+        break;
+      }
+#endif
 
     }
 
@@ -162,6 +232,25 @@ int main(int narg, char **args){
     initializeParticles(&particle, &grid);
 
   }
+  float boxVolume =1, foamVolume = 0;
+  grid.rMax[0] = grid.furthestX;
+  for(int i=0; i<_DIMENSIONS; i++){
+    boxVolume *= (grid.rMax[i]-grid.rMin[i]);
+  }
+  if(_DIMENSIONS == 2){
+//    for (int p=0; p < foam.size(); p++){
+//      foamVolume += M_PI*foam[p].radius*foam[p].radius;
+//    }
+     foamVolume = foam.size()*M_PI*grid.radius*grid.radius;
+  }
+  if(_DIMENSIONS == 3){
+//    for (int p=0; p < foam.size(); p++){
+//      foamVolume += *4.0/3.0*M_PI*foam[p].radius*foam[p].radius*foam[p].radius;
+//    }
+     foamVolume = foam.size()*4.0/3.0*M_PI*grid.radius*grid.radius*grid.radius;
+  }
+
+  std::cout << "   filling factor = " << foamVolume/boxVolume << std::endl ;
   std::ofstream of1;
   of1.open("pippo.xyz", std::ofstream::out | std::ofstream::trunc);
 	of1 << foam.size() << std::endl;
