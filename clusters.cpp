@@ -28,7 +28,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 //#include <boost/random/mersenne_twister.hpp>
 //#include <boost/random/normal_distribution.hpp>
 //#include <boost/random/variate_generator.hpp>
-#define _DIMENSIONS 3
+#define _DIMENSIONS 2
 
 //typedef boost::uniform_real<> UniformRealDistribution;
 //typedef boost::mt19937 MTGenerator;
@@ -83,22 +83,23 @@ void checkBoundaries(PARTICLE *particle, GRID *grid){
   }
 }
 
-float distance(PARTICLE *part1, PARTICLE *part2){
-  float rSquared=0;
+float distance2(PARTICLE *part1, PARTICLE *part2){
+  float r2=0;
   for(int i=0; i<_DIMENSIONS; i++){
-    rSquared +=  pow(part1->coord[i]-part2->coord[i], 2);
+    r2 +=  (part1->coord[i]-part2->coord[i])*(part1->coord[i]-part2->coord[i]);
   }
-  return sqrt(rSquared);
+  return r2;
 }
 
 bool isParticleTouching(PARTICLE *particle, std::vector<PARTICLE> *foam){
   float dist;
-  std::vector<PARTICLE>::const_iterator iterator;
+  //std::vector<PARTICLE>::const_iterator iterator;
   if(particle->coord[0]<(particle->radius))
     return true;
-  for (int i=0; i < foam->size(); i++){
-    dist = distance( particle, &foam->at(i) );
-    if(dist < (particle->radius + foam->at(i).radius) )
+  for (std::vector<PARTICLE>::reverse_iterator i = foam->rbegin();
+       i != foam->rend(); ++i){
+    dist = distance2( particle, &(*i) );
+    if(dist < (particle->radius + (*i).radius)*(particle->radius + (*i).radius))
       return true;
 
   }
@@ -118,12 +119,12 @@ int main(int narg, char **args){
   //grid.myGenerator = numberGenerator;
 
   for(int i=0; i<_DIMENSIONS; i++){
-    grid.rMin[i] = -1;
-    grid.rMax[i] = 1;
+    grid.rMin[i] = 0.0;
+    grid.rMax[i] = 10.0;
   }
   grid.rMax[0] = 5;
-  grid.step = 0.001;
-  grid.radius = 0.01;
+  grid.step = 0.05;
+  grid.radius = 0.05;
   grid.furthestX = 0;
 
   std::cout << "  grid.step = " << grid.step << "  grid.radius = " << grid.radius << "\n";
@@ -162,10 +163,12 @@ int main(int narg, char **args){
 
   }
   std::ofstream of1;
-  of1.open("pippo", std::ofstream::out | std::ofstream::trunc);
-
+  of1.open("pippo.xyz", std::ofstream::out | std::ofstream::trunc);
+	of1 << foam.size() << std::endl;
+	of1 << "La schiuma dello Sgatto" << std::endl;
   for (int p=0; p < foam.size(); p++){
-    for(int i=0; i<_DIMENSIONS; i++){
+    of1 << "A ";
+		for(int i=0; i<_DIMENSIONS; i++){
       of1 << foam[p].coord[i] << " ";
     }
     of1 <<  std::endl;
