@@ -202,13 +202,9 @@ int main(int narg, char **args)
 
 
   double* plotData = new double[first_bins*second_bins*third_bins];
+  memset((void*)plotData,0,sizeof(double)*first_bins*second_bins*third_bins);
 
-  for( long long i = 0; i < first_bins; i++)
-    for(long long j = 0; j < second_bins; j++)
-      for(long long k = 0; k < third_bins; k++)
-      {
-        plotData[i+j*first_bins+k*first_bins*second_bins] = 0.0;
-      }
+
   MPI_File theFile;
   MPI_File_open(fileGroup.comm, fileName, MPI_MODE_RDONLY, MPI_INFO_NULL , &theFile);
   MPI_File_set_view(theFile, disp, MPI_FLOAT, MPI_FLOAT, (char *) "native", MPI_INFO_NULL);

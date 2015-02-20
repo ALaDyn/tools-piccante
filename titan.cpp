@@ -65,11 +65,11 @@ long third_bins;
 
 bool flag_with_filters=false;
 struct filter{
-  int on_what;
-  bool is_there_minval;
-  bool is_there_maxval;
-  double minval;
-  double maxval;
+    int on_what;
+    bool is_there_minval;
+    bool is_there_maxval;
+    double minval;
+    double maxval;
 };
 std::vector<filter> filterList;
 
@@ -99,9 +99,10 @@ long howLongIsInputFile(std::string fileName);
 void drawLoadBar(long i, long Ntot, int sizeBar);
 
 void swap_endian_float_array(float* in_f, int n);
+void fillComponentsValues(float *components, float *coordinates, float &weight);
 
-void read_next_extremes(std::ifstream& myFile,long numreader);
-void read_next_plot(std::ifstream& myFile, long numreader, double* plotData);
+void read_next_extremes(std::ifstream& myFile,long long numreader);
+void read_next_plot(std::ifstream& myFile, long long numreader, double* plotData);
 
 const int readLength = 1000000;
 
@@ -204,13 +205,7 @@ int main(int narg, char **args)
   }
 
   double* plotData = new double[first_bins*second_bins*third_bins];
-
-  for(long i = 0; i < first_bins; i++)
-    for(long j = 0; j < second_bins; j++)
-      for(long k = 0; k < third_bins; k++)
-      {
-        plotData[i+j*first_bins+k*first_bins*second_bins] = 0.0;
-      }
+  memset((void*)plotData,0,sizeof(double)*first_bins*second_bins*third_bins);
 
   long readings = particleTotalNumber/readLength;
   long reminder = particleTotalNumber-readings*readLength;
@@ -244,12 +239,14 @@ int main(int narg, char **args)
     outfile.open(outputfileName.c_str());
 
     long k = 0;
-    for (long j = 0; j < second_bins; j++)
+    for (long j = 0; j < second_bins; j++){
       for (long i = 0; i < first_bins; i++){
         double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
         double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
         outfile << fcoord << " " << scoord << " "<< plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
       }
+      outfile << std::endl;
+    }
     outfile.close();
   }
   else if(flag_3D)
@@ -258,14 +255,18 @@ int main(int narg, char **args)
     {
       outfile.open(outputfileName.c_str());
 
-      for (long k = 0; k < third_bins; k++)
-        for (long j = 0; j < second_bins; j++)
+      for (long k = 0; k < third_bins; k++){
+        for (long j = 0; j < second_bins; j++){
           for (long i = 0; i < first_bins; i++){
             double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
             double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
             double tcoord = (k + k + 1)*0.5/third_bins*(third_max-third_min)+third_min;
             outfile << fcoord << " " << scoord << " "<< tcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
           }
+          outfile << std::endl;
+        }
+        outfile << std::endl;
+      }
       outfile.close();
     }
     else{
@@ -853,8 +854,9 @@ long howLongIsInputFile(std::string fileName){
   return length;
 }
 
-void swap_endian_float_array(float* in_f, int n)
-{
+void swap_endian_float_array(float* in_f, int n){
+  if(!flag_swap)
+    return;
   int i;
   union {int irep; float frep; char arr[4];}x;
   char buff;
@@ -871,73 +873,70 @@ void swap_endian_float_array(float* in_f, int n)
   }
 }
 
-void read_next_extremes(std::ifstream& myFile,long numreader){
-  char* buffer = new char[numreader*sizeof(float)*NUM_COMPONENTS];
-  myFile.read(buffer, numreader*sizeof(float)*NUM_COMPONENTS);
-
-  if(flag_swap){
-    swap_endian_float_array((float*)buffer,NUM_COMPONENTS*numreader);
-  }
-
-  float* fbuf = (float*)buffer;
-  float components[NUM_QUANTITIES];
-
-  for(long i = 0; i < numreader; i++){
-    components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-    components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-    components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-    components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-    components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-    components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-    components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-    components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-    components[8]=atan2(components[4],components[3])/M_PI*180;
-    double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-    components[9]=atan2(components[5],rr)/M_PI*180;
-
-    for(int j = 0; j < NUM_QUANTITIES; j++){
-      if(components[j]>maxcomponents[j]) maxcomponents[j]=components[j];
-      if(components[j]<mincomponents[j]) mincomponents[j]=components[j];
-    }
-  }
-
-
-  delete[] buffer;
+void fillComponentsValues(float *components, float *coordinates, float &weight){
+  components[0]=coordinates[0];//x
+  components[1]=coordinates[1];//y
+  components[2]=coordinates[2];//z
+  components[3]=coordinates[3];//px
+  components[4]=coordinates[4];//py
+  components[5]=coordinates[5];//pz
+  components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
+  components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);
+  components[8]=atan2(components[4],components[3])/M_PI*180;
+  double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
+  components[9]=atan2(components[5],rr)/M_PI*180;
+  weight = coordinates[6];
 }
 
-void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
-  char* buffer = new char[numreader*sizeof(float)*NUM_COMPONENTS];
-  myFile.read(buffer, numreader*sizeof(float)*NUM_COMPONENTS);
+void read_next_extremes(std::ifstream& myFile,long long numreader){
+  float* buffer = new float[numreader*NUM_COMPONENTS];
 
-  if(flag_swap){
-    swap_endian_float_array((float*)buffer,NUM_COMPONENTS*numreader);
+  if (numreader < 0)
+    numreader = 0;
+
+  myFile.read((char*)buffer, numreader*sizeof(float)*NUM_COMPONENTS);
+
+  if(numreader == 0)
+    return;
+
+  swap_endian_float_array(buffer,NUM_COMPONENTS*numreader);
+
+  float components[NUM_QUANTITIES];
+  float weight;
+  for(long long i = 0; i < numreader; i++){
+    fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
+
+    for(int c = 0; c < NUM_QUANTITIES; c++){
+      if(components[c]>maxcomponents[c]) maxcomponents[c]=components[c];
+      if(components[c]<mincomponents[c]) mincomponents[c]=components[c];
+    }
   }
+  delete[] buffer;
+}
+void read_next_plot(std::ifstream& myFile, long long numreader, double* plotData){
+  float* buffer = new float[numreader*NUM_COMPONENTS];
 
-  float* fbuf = (float*)buffer;
+  if (numreader < 0)
+    numreader = 0;
+  myFile.read((char*)buffer, numreader*sizeof(float)*NUM_COMPONENTS);
+
+  if(numreader == 0)
+    return;
+
+  swap_endian_float_array(buffer,NUM_COMPONENTS*numreader);
+
   float components[NUM_QUANTITIES];
   float weight;
 
-  long ibin,jbin,kbin;
+  long long ibin,jbin,kbin;
 
   double first_size = first_max-first_min;
   double second_size = second_max-second_min;
   double third_size = third_max-third_min;
 
   if(flag_1D){
-    for(long i = 0; i < numreader; i++){
-      components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-      components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-      components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-      components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-      components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-      components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-      components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-      components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3])/M_PI*180;
-      double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(components[5],rr)/M_PI*180;
-
-      weight = fbuf[NUM_COMPONENTS*i+6];
+    for(long long i = 0; i < numreader; i++){
+      fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -945,11 +944,7 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
             weight = 0;
           }
         }
-
       }
-
-
-
       kbin=0;
       jbin=0;
       ibin = (first_bins-1)*(components[what_first]-first_min)/first_size;
@@ -958,20 +953,8 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
     }
   }
   else if(flag_2D){
-    for(long i = 0; i < numreader; i++){
-      components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-      components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-      components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-      components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-      components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-      components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-      components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-      components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3])/M_PI*180;
-      double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(components[5],rr)/M_PI*180;
-      weight = fbuf[NUM_COMPONENTS*i+6];
-
+    for(long long i = 0; i < numreader; i++){
+      fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -980,7 +963,6 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
           }
         }
       }
-
       kbin=0;
       jbin=(second_bins-1)*(components[what_second]-second_min)/second_size;
       ibin = (first_bins-1)*(components[what_first]-first_min)/first_size;
@@ -989,20 +971,8 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
     }
   }
   else{
-    for(long i = 0; i < numreader; i++){
-      components[0]=fbuf[NUM_COMPONENTS*i+0];//x
-      components[1]=fbuf[NUM_COMPONENTS*i+1];//y
-      components[2]=fbuf[NUM_COMPONENTS*i+2];//z
-      components[3]=fbuf[NUM_COMPONENTS*i+3];//px
-      components[4]=fbuf[NUM_COMPONENTS*i+4];//py
-      components[5]=fbuf[NUM_COMPONENTS*i+5];//pz
-      components[6]=sqrt(components[3]*components[3]+components[4]*components[4]+components[5]*components[5]);//ptot
-      components[7]=mass*(sqrt(1.0+components[6]*components[6])-1);//ktot
-      components[8]=atan2(components[4],components[3])/M_PI*180;
-      double rr = sqrt(components[3]*components[3]+components[4]*components[4]);
-      components[9]=atan2(components[5],rr)/M_PI*180;
-      weight = fbuf[NUM_COMPONENTS*i+6];
-
+    for(long long i = 0; i < numreader; i++){
+      fillComponentsValues(components, &buffer[NUM_COMPONENTS*i+0], weight);
 
       if(flag_with_filters){
         for(int icomp=0; icomp<NUM_QUANTITIES; icomp++){
@@ -1012,9 +982,9 @@ void read_next_plot(std::ifstream& myFile, long numreader, double* plotData){
         }
       }
 
-      kbin=(long)(third_bins-1)*(components[what_third]-third_min)/third_size;
-      jbin=(long)(second_bins-1)*(components[what_second]-second_min)/second_size;
-      ibin =(long)(first_bins-1)*(components[what_first]-first_min)/first_size;
+      kbin=(long long)(third_bins-1)*(components[what_third]-third_min)/third_size;
+      jbin=(long long)(second_bins-1)*(components[what_second]-second_min)/second_size;
+      ibin =(long long)(first_bins-1)*(components[what_first]-first_min)/first_size;
       if (ibin >= 0 && ibin < first_bins && jbin>=0 && jbin < second_bins && kbin >= 0 && kbin < third_bins)
         plotData[ibin+jbin*first_bins+kbin*first_bins*second_bins] += weight;
     }
