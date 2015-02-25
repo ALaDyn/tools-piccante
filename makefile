@@ -2,7 +2,7 @@ COMPILER = g++
 MPICOMPILER = mpic++
 OBJ = utilities-tools.o
 
-OPT = -O3 -std=c++11
+OPT = -O3 -std=c++0x
 
 
 LFLAGS = -Wall
