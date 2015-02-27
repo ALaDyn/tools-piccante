@@ -15,6 +15,8 @@ EXE6 = WspacialSpectrum
 EXE7 = titan
 EXE8 = MPItitan
 EXE9 = frogReader
+EXE10 = clusters
+EXE11 = titan2
 
 SRC1 = newReader.cpp
 SRC2 = WangularSpectrum.cpp
@@ -25,8 +27,11 @@ SRC6 = WspacialSpectrum.cpp
 SRC7 = titan.cpp
 SRC8 = MPItitan.cpp
 SRC9 = frogReader.cpp
+SRC10 = clusters.cpp
+SRC11 = titan2.cpp
 
-all : $(EXE1) $(EXE2) $(EXE3) $(EXE4)  $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9)
+EXES = $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10)  $(EXE11)
+all : $(EXES)
 
 debug : OPT = -O0 -g 
 debug : $(EXE)
@@ -59,7 +64,14 @@ $(EXE8) : $(SRC8)
 $(EXE9) : $(SRC9)
 	$(COMPILER) $(SRC9) -o $(EXE9) $(OPT)   $(LIB)
 
+utilities-tools.o: utilities-tools.cpp
+	$(COMPILER)  $(OPT) -c utilities-tools.cpp
+
+$(EXE10) : $(SRC10) utilities-tools.o
+	 $(COMPILER) $(SRC10) -o $(EXE10) $(OPT) $(OBJ) $(LIB)
+
+$(EXE11) : $(SRC11)
+	 $(COMPILER) $(SRC11) -o $(EXE11) $(OPT)   $(LIB)
+
 clean :
-	rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8)
-
-
+	      rm $(EXES) utilities-tools.o

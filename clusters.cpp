@@ -295,7 +295,8 @@ int main(int narg, char **args){
   std::vector<PARTICLE>::const_iterator iterator;
   GRID grid;
   PARTICLE particle;
-
+  int seed = time(NULL);
+  srand(seed);
   //UniformRealDistribution distribution(0, 1.0);
   //MTGenerator generator;
   //Generator numberGenerator(generator, distribution);
