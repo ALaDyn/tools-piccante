@@ -1,21 +1,20 @@
 #! /bin/bash
 
-################################################################################
-# This file is part of piccante.
-# 
-# piccante is free software: you can redistribute it and/or modify
+#*******************************************************************************
+# This file is part of tools_pic.
+#
+# tools_pic is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
-# piccante is distributed in the hope that it will be useful,
+# tools-pic is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
 # You should have received a copy of the GNU General Public License
-# along with piccante.  If not, see <http://www.gnu.org/licenses/>.
-################################################################################
+# along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
+#*******************************************************************************
+
 
 MAINFILE_NAME=main-1.cpp
 
@@ -55,6 +54,23 @@ TMAX="100.0"
 
 
 ### DO NOT TOUCH FROM HERE ###
+
+printf "################################################################################\n" >> ${MAINFILE_NAME}
+printf "# This file is part of piccante.\n" >> ${MAINFILE_NAME}
+printf "# \n" >> ${MAINFILE_NAME}
+printf "# piccante is free software: you can redistribute it and/or modify\n" >> ${MAINFILE_NAME}
+printf "# it under the terms of the GNU General Public License as published by\n" >> ${MAINFILE_NAME}
+printf "# the Free Software Foundation, either version 3 of the License, or\n" >> ${MAINFILE_NAME}
+printf "# (at your option) any later version.\n" >> ${MAINFILE_NAME}
+printf "# \n" >> ${MAINFILE_NAME}
+printf "# piccante is distributed in the hope that it will be useful,\n" >> ${MAINFILE_NAME}
+printf "# but WITHOUT ANY WARRANTY; without even the implied warranty of\n" >> ${MAINFILE_NAME}
+printf "# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n" >> ${MAINFILE_NAME}
+printf "# GNU General Public License for more details.\n" >> ${MAINFILE_NAME}
+printf "# \n" >> ${MAINFILE_NAME}
+printf "# You should have received a copy of the GNU General Public License\n" >> ${MAINFILE_NAME}
+printf "# along with piccante.  If not, see <http://www.gnu.org/licenses/>.\n" >> ${MAINFILE_NAME}
+printf "################################################################################\n" >> ${MAINFILE_NAME}
 
 printf "#define _USE_MATH_DEFINES\n" >> ${MAINFILE_NAME}
 printf "#include <mpi.h>\n" >> ${MAINFILE_NAME}
