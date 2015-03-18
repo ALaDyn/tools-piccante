@@ -254,10 +254,10 @@ int main(const int argc, const char *argv[]){
   int lockIndex[3]={allocN[0]/2,allocN[1]/2,allocN[2]/2};
   for(int c=0; c<3; c++)
     if(FLAG_lockr[c]){
-      allocN[c]=1;
       lockIndex[c]=allocN[c]/2;
       iminval[c] = allocN[c]/2;
       imaxval[c] = iminval[c] + 1;
+      allocN[c]=1;
     }
   for(int c=0; c<3; c++)
     printf("FLAG_lockr[%i] = %i  allocN[%i] = %i   lockIndex[%i]=%i \n", c, FLAG_lockr[c], c, allocN[c], c, lockIndex[c]);
