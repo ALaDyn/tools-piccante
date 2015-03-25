@@ -65,6 +65,68 @@ void swap_endian(int* in_i, int n)
   }
 }
 
+std::string composeFileName(std::string strippedFileName, int fileId){
+  const int numZeroes = 3;
+  std::stringstream ss;
+  ss << strippedFileName <<"."<< std::setfill('0') << std::setw(numZeroes) << fileId;
+
+  return ss.str();
+}
+
+void message(std::string msg){
+  std::cout << msg << std::endl;
+  std::cout.flush();
+  return;
+}
+
+void errorMessage(std::string msg){
+  std::cout << "ERROR: "  << msg << std::endl;
+  std::cout.flush();
+  exit(1);
+
+}
+
+
+int howManyFilesExist(std::string strippedFileName){
+  int counter = 0;
+  int fID = 0;
+  bool dummyFlag = true;
+
+  while(dummyFlag){
+    std::string bstring = composeFileName(strippedFileName, fID);
+    std::ifstream infile;
+    infile.open(bstring.c_str());
+    if(infile.good()){
+      counter++;
+      fID++;
+      infile.close();
+    }
+    else{
+      dummyFlag=false;
+    }
+  }
+  if(counter == 0){
+    std::ifstream infile;
+    infile.open(strippedFileName.c_str());
+    if(infile.good()){
+      counter++;
+      infile.close();
+      //single_file_wo_suffix = true;
+    }
+  }
+  return counter;
+}
+
+
+
+int getAndCheckFileNumber(std::string strippedFileName){
+  int fileNumber = howManyFilesExist(strippedFileName);
+  if(fileNumber <= 0)
+    errorMessage("Input file not found");
+
+
+  return fileNumber;
+}
 
 int is_big_endian();
 
@@ -107,6 +169,7 @@ int main(const int argc, const char *argv[]){
   std::ostringstream nomefile_bin, outputfileName;
   nomefile_bin << std::string(argv[1]);
   std::ifstream file_bin;
+int fileNumber=getAndCheckFileNumber(nomefile_bin);
 
   file_bin.open(nomefile_bin.str().c_str(), std::ios::binary | std::ios::in);
 
@@ -324,8 +387,8 @@ int main(const int argc, const char *argv[]){
                 if(globalI[1] >= iminval[1] && globalI[1] < imaxval[1] && shouldWrite[1])
                   if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2] && shouldWrite[2]){
                     if (index >= size){
-		      std::cout<< index << "( " << size << " ) " << c << " " << i << " " << j << " " << k << " " << savedI[0] << " " << savedI[1] << " " << savedI[2] << " " << std::endl;
-			}
+          std::cout<< index << "( " << size << " ) " << c << " " << i << " " << j << " " << k << " " << savedI[0] << " " << savedI[1] << " " << savedI[2] << " " << std::endl;
+      }
                     else
                       savedFields[index] = localFields[locIndex];
                   }
@@ -391,7 +454,7 @@ int main(const int argc, const char *argv[]){
       file_vtk.write((char*)(&savedFields[cc*totPts]), sizeof(float)*totPts);
     }
     file_vtk.close();
-    
+
   }
   else{
     outputfileName << std::string(argv[1]) << ".txt";
@@ -499,4 +562,5 @@ int findIndexMax (double val, float* coords, int numcoords){
 
 
 }
+
 

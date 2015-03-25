@@ -19,6 +19,7 @@ EXE8 = MPItitan
 EXE9 = frogReader
 EXE10 = clusters
 EXE11 = titan2
+EXE12 = multiFrogReader
 
 SRC1 = newReader.cpp
 SRC2 = WangularSpectrum.cpp
@@ -31,8 +32,10 @@ SRC8 = MPItitan.cpp
 SRC9 = frogReader.cpp
 SRC10 = clusters.cpp
 SRC11 = titan2.cpp
+SRC12 = multiFrogReader.cpp
 
-EXES = $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10)  $(EXE11)
+
+EXES = $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10)  $(EXE11)  $(EXE12)
 all : $(EXES)
 
 boost : OPT = -O3 -DUSE_BOOST
@@ -76,7 +79,10 @@ $(EXE10) : $(SRC10) utilities-tools.o
 $(EXE11) : $(SRC11)
 	$(COMPILER) $(SRC11) -o $(EXE11) $(OPT)   $(LIB)
 
+$(EXE12) : $(SRC12)
+	$(COMPILER) $(SRC12) -o $(EXE12) $(OPT)   $(LIB)
+
 clean :
-	rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10) $(EXE11) utilities-tools.o
+	rm $(EXE1) $(EXE2) $(EXE3) $(EXE4) $(EXE5) $(EXE6) $(EXE7) $(EXE8) $(EXE9) $(EXE10) $(EXE11)  $(EXE12) utilities-tools.o
 
 
