@@ -30,6 +30,347 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 #include <cstdlib>
 
+void swap_endian(float* in_f, size_t n);
+void swap_endian(int* in_i, int n);
+
+struct ALL_FLAGS{
+    bool FLAG_xmin, FLAG_ymin, FLAG_zmin;
+    bool FLAG_xmax, FLAG_ymax, FLAG_zmax;
+    double xminval, yminval, zminval;
+    double xmaxval, ymaxval, zmaxval;
+    bool FLAG_lockr[3];
+    int iminval[3];
+    int imaxval[3];
+    int sampling[3];
+    bool vtkOutput;
+    bool doSwap;
+
+    ALL_FLAGS(){
+      FLAG_xmin = FLAG_ymin = FLAG_zmin = false;
+      FLAG_xmax = FLAG_ymax = FLAG_zmax = false;
+      xminval = yminval = zminval = -9999.0;
+      xmaxval = ymaxval = zmaxval = +9999.0;
+      FLAG_lockr[0] = false;
+      FLAG_lockr[1] = false;
+      FLAG_lockr[2] = false;
+      iminval[0] = iminval[1] = iminval[2] = 0;
+      imaxval[0] = imaxval[1] = imaxval[2] = 0;
+      sampling[0] = sampling[1] = sampling[2] = 1;
+      vtkOutput = false;
+
+    }
+};
+struct OUTPUT_DATA{
+    int lockIndex[3];
+    int allocN[3];
+    uint64_t size;
+    uint64_t NNN;
+    float *savedFields;
+};
+
+struct FILE_DATA{
+    int isBigEndian;
+    int dataNSize[3], rNproc[3];
+
+    float *riCoords[3];
+    int Nproc;
+    int Ncomp;
+
+};
+
+std::string composeFileName(std::string strippedFileName, int fileId);
+void message(std::string msg);
+void errorMessage(std::string msg);
+int howManyFilesExist(std::string strippedFileName);
+int getAndCheckFileNumber(std::string strippedFileName);
+int is_big_endian();
+
+inline void drawLoadBar(uint64_t, uint64_t, uint64_t, int);
+
+int findIndexMin (double val, float* coords, int numcoords);
+int findIndexMax (double val, float* coords, int numcoords);
+void parseInputArguments(ALL_FLAGS &myFlags, int argc, char **argv);
+void writeUsageHelper();
+void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData);
+
+void updateFileIfEOF(std::ifstream &file_bin, int &fileId, std::string strippedName);
+
+void readFromFile(std::ifstream &file_bin, int *buffer, int N, bool doSwap);
+void readFromFile(std::ifstream &file_bin, float *buffer, int N, bool doSwap);
+
+
+void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileData, std::string outputfileName);
+
+
+int main( int narg,  char **args){
+  ALL_FLAGS myFlags;
+  FILE_DATA fileData;
+  OUTPUT_DATA outputData;
+  bool doSwap;
+
+
+  std::cout<< "  There  are " << narg << " arguments" << std::endl;
+
+  if (narg < 2){
+    writeUsageHelper();
+    exit(0);
+  }
+
+
+  std::ostringstream inputString, outputfileName;
+  inputString << std::string(args[1]);
+  std::ifstream file_bin;
+  int fileNumber=getAndCheckFileNumber(inputString.str());
+  std::cout << "\nWelcome to the new reader" << std::endl;
+  std::cout<< "  There seems to be " << fileNumber << " files" << std::endl;
+
+
+
+  parseInputArguments(myFlags, narg, args);
+
+  int fileId = 0;
+  std::cout << "the input string is >>> " << inputString.str() << std::endl;
+  std::string currentFileName = composeFileName(inputString.str(),fileId);
+  std::cout << "... opening the file >>> " << currentFileName << std::endl;
+  file_bin.open(currentFileName.c_str(), std::ios::binary | std::ios::in);
+  if (file_bin.fail()){
+    std::cout << "Input file non trovato" << std::endl;
+    return -3;
+  }
+
+
+
+  file_bin.read((char*)&fileData.isBigEndian, sizeof(int));
+  doSwap = (fileData.isBigEndian!=is_big_endian());
+  printf("do swap? %i \n", doSwap);
+
+  file_bin.read((char*)fileData.dataNSize, 3 * sizeof(int));
+  if(doSwap)
+    swap_endian( fileData.dataNSize, 3);
+  file_bin.read((char*)fileData.rNproc, 3 * sizeof(int));
+  if(doSwap)
+    swap_endian( fileData.rNproc, 3);
+
+  fileData.Nproc = fileData.rNproc[0] * fileData.rNproc[1] * fileData.rNproc[2];
+  fileData.riCoords[0] = new float[fileData.dataNSize[0]];
+  fileData.riCoords[1] = new float[fileData.dataNSize[1]];
+  fileData.riCoords[2] = new float[fileData.dataNSize[2]];
+
+  file_bin.read((char*)(&fileData.Ncomp), sizeof(int));
+  if(doSwap)
+    swap_endian( &fileData.Ncomp, 1);
+
+  for (int c = 0; c < 3; c++){
+    file_bin.read((char*)fileData.riCoords[c], fileData.dataNSize[c] * sizeof(float));
+    if(doSwap)
+      swap_endian( fileData.riCoords[c], fileData.dataNSize[c]);
+  }
+
+  std::cout << "fileData.isBigEndian:  " << fileData.isBigEndian << "\n";
+  std::cout << "Ncells:  " << fileData.dataNSize[0] << "  " << fileData.dataNSize[1] << "  " << fileData.dataNSize[2] << "\n";
+  std::cout << "Nprocs:  " << fileData.rNproc[0] << "  " << fileData.rNproc[1] << "  " << fileData.rNproc[2] << "\n";
+  std::cout << "Ncomp: " << fileData.Ncomp << std::endl;
+  std::cout << "sizeof uint64_t =  " << sizeof(uint64_t) << std::endl;
+
+
+
+  checkFlags(myFlags, fileData, outputData);
+
+
+  outputData.size = ((uint64_t)fileData.Ncomp)*((uint64_t)outputData.allocN[0])*((uint64_t)outputData.allocN[1])*((uint64_t)outputData.allocN[2]);
+  outputData.savedFields = new float[outputData.size];
+
+
+
+
+  for(int c=0; c<3; c++)
+    printf("FLAG_lockr[%i] = %i  outputData.allocN[%i] = %i   outputData.lockIndex[%i]=%i \n", c, myFlags.FLAG_lockr[c], c, outputData.allocN[c], c, outputData.lockIndex[c]);
+
+
+  std::cout << "Reading ..." << std::endl; std::cout.flush();
+
+
+  for (int rank = 0; rank < fileData.Nproc; rank++){
+
+    updateFileIfEOF(file_bin, fileId, inputString.str());
+
+    int locOrigin[3], locNcells[3];
+
+    readFromFile(file_bin, locOrigin, 3, doSwap);
+    readFromFile(file_bin, locNcells, 3, doSwap);
+
+    float *localFields;
+    int locSize = fileData.Ncomp*locNcells[0] * locNcells[1] * locNcells[2];
+    localFields = new float[locSize];
+
+    readFromFile(file_bin, localFields, locSize, doSwap);
+
+
+    drawLoadBar(rank + 1, fileData.Nproc, fileData.Nproc, 30);
+
+    bool flagRead=true;
+    for (int c = 0; c < 3; c++){
+      if(myFlags.FLAG_lockr[c])
+        if( locOrigin[c]<=outputData.lockIndex[c]&& ((locOrigin[c]+locNcells[c])>outputData.lockIndex[c]) )
+          flagRead = flagRead && true;
+        else
+          flagRead = false;
+    }
+    int shouldWrite[3];
+    if(flagRead){
+      int savedI[3], globalI[3];
+      for (int k = 0; k < locNcells[2]; k++){
+        globalI[2] = k + locOrigin[2];
+        savedI[2] = (globalI[2] - myFlags.iminval[2])/myFlags.sampling[2];
+        shouldWrite[2] = !((globalI[2] - myFlags.iminval[2])%myFlags.sampling[2]);
+        for (int j = 0; j < locNcells[1]; j++){
+          globalI[1] = j + locOrigin[1];
+          savedI[1] = (globalI[1] - myFlags.iminval[1])/myFlags.sampling[1];
+          shouldWrite[1] = !((globalI[1] - myFlags.iminval[1])%myFlags.sampling[1]);
+
+          for (int i = 0; i < locNcells[0]; i++){
+            globalI[0] = i + locOrigin[0];
+            savedI[0] = (globalI[0] - myFlags.iminval[0])/myFlags.sampling[0];
+            shouldWrite[0] = !((globalI[0] - myFlags.iminval[0])%myFlags.sampling[0]);
+
+            for (int c = 0; c < fileData.Ncomp; c++){
+              uint64_t index = c*outputData.allocN[0]*outputData.allocN[1]*outputData.allocN[2] + savedI[0] + outputData.allocN[0] * savedI[1] +  outputData.allocN[0]*outputData.allocN[1]*savedI[2];
+              uint64_t locIndex = c + fileData.Ncomp*i + fileData.Ncomp*locNcells[0] * j + fileData.Ncomp*locNcells[0] * locNcells[1] * k;
+
+              if(globalI[0] >= myFlags.iminval[0] && globalI[0] < myFlags.imaxval[0] && shouldWrite[0])
+                if(globalI[1] >= myFlags.iminval[1] && globalI[1] < myFlags.imaxval[1] && shouldWrite[1])
+                  if(globalI[2] >= myFlags.iminval[2] && globalI[2] < myFlags.imaxval[2] && shouldWrite[2]){
+                    if (index >= outputData.size){
+                      std::cout<< index << "( " << outputData.size << " ) " << c << " " << i << " " << j << " " << k << " " << savedI[0] << " " << savedI[1] << " " << savedI[2] << " " << std::endl;
+                    }
+                    else
+                      outputData.savedFields[index] = localFields[locIndex];
+                  }
+            }
+          }
+        }
+      }
+    }
+    delete[] localFields;
+  }
+  file_bin.close();
+  std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
+
+  if(myFlags.vtkOutput){
+
+    printf("VTK enabled\n");
+    outputfileName << std::string(args[1]) << ".vtk";
+    printVTKFile(outputData, myFlags, fileData, outputfileName.str());
+
+
+  }
+  else{
+    outputfileName << std::string(args[1]) << ".txt";
+    std::ofstream file_txt;
+    uint64_t totPts = outputData.allocN[0] * outputData.allocN[1]* outputData.allocN[2];
+    file_txt.open(outputfileName.str().c_str());
+    for(int c=0; c < 3; c++)
+      printf("allocN[%i] = %i   ", c, outputData.allocN[c]);
+    printf("\n");
+    std::stringstream bufstream;
+    for (uint64_t kk = 0; kk <outputData.allocN[2] ; kk++){
+      for (uint64_t jj = 0; jj <outputData.allocN[1] ; jj++){
+        for (uint64_t ii = 0; ii <outputData.allocN[0]; ii++){
+          int global[3];
+          global[0] = ii*myFlags.sampling[0] + myFlags.iminval[0];
+          global[1] = jj*myFlags.sampling[1] + myFlags.iminval[1];
+          global[2] = kk*myFlags.sampling[2] + myFlags.iminval[2];
+
+          drawLoadBar(ii + (jj)*outputData.allocN[0] + kk*outputData.allocN[0]*outputData.allocN[1] + 1, totPts, outputData.allocN[0], 30);
+
+          bufstream << std::setw(12) << std::setprecision(5) << fileData.riCoords[0][global[0]];
+          bufstream << std::setw(12) << std::setprecision(5) << fileData.riCoords[1][global[1]];
+          bufstream << std::setw(12) << std::setprecision(5) << fileData.riCoords[2][global[2]];
+          for (int c = 0; c < fileData.Ncomp; c++){
+            //uint64_t index = c + fileData.Ncomp*ii + fileData.Ncomp*outputData.allocN[0] * jj + fileData.Ncomp*outputData.allocN[0] * outputData.allocN[1] * kk;
+            uint64_t index = c*outputData.allocN[0]*outputData.allocN[1]*outputData.allocN[2] + ii + outputData.allocN[0]*jj +  outputData.allocN[0]*outputData.allocN[1]*kk;
+
+            bufstream << std::setw(12) << std::setprecision(5) << outputData.savedFields[index];
+          }
+          bufstream << std::endl;
+        }
+        bufstream << std::endl;
+      }
+    }
+    std::string bufstring = bufstream.str();
+    file_txt.write(bufstring.c_str(), bufstring.length());
+    file_txt.close();
+  }
+  std::cout << std::endl;
+
+
+
+
+}
+
+
+int is_big_endian(){
+  union {
+      uint32_t i;
+      char c[4];
+  } bint = { 0x01020304 };
+
+  return bint.c[0] == 1;
+}
+
+inline void drawLoadBar(uint64_t i, uint64_t Ntot, uint64_t R, int sizeBar){
+  if (i % (Ntot / R) != 0) return;
+
+  std::cout << "\r";
+
+  float ratio = i / ((float)Ntot);
+
+  int numSymbols = (int)(sizeBar*ratio);
+
+  std::cout << std::setw(3) << (int)(ratio * 100) << "% [";
+
+  int j;
+  for (j = 0; j < numSymbols; j++){
+    std::cout << "=";
+  }
+  for (; j < sizeBar; j++){
+    std::cout << " ";
+  }
+
+  std::cout << "]";
+  std::cout.flush();
+}
+
+
+int findIndexMin (double val, float* coords, int numcoords){
+  if (numcoords <= 1)
+    return 0;
+
+  if (val <= coords[0])
+    return 0;
+
+  for (int i = 1; i < numcoords; i++){
+    if (val < coords[i])
+      return (i-1);
+  }
+
+}
+
+int findIndexMax (double val, float* coords, int numcoords){
+  if (numcoords<= 1)
+    return 0;
+
+  if (val >= coords[numcoords-1])
+    return (numcoords-1);
+
+  for (int i = (numcoords-1); i >= 0; i--){
+    if (val > coords[i])
+      return (i+1);
+  }
+
+
+}
+
 void swap_endian(float* in_f, size_t n)
 {
   size_t i;
@@ -124,443 +465,193 @@ int getAndCheckFileNumber(std::string strippedFileName){
   if(fileNumber <= 0)
     errorMessage("Input file not found");
 
-
   return fileNumber;
 }
 
-int is_big_endian();
-
-inline void drawLoadBar(long, long, long, int);
-
-int findIndexMin (double val, float* coords, int numcoords);
-int findIndexMax (double val, float* coords, int numcoords);
-
-int main(const int argc, const char *argv[]){
-  bool FLAG_lockr[3];
-  FLAG_lockr[0] = false;
-  FLAG_lockr[1] = false;
-  FLAG_lockr[2] = false;
-
-  bool  FLAG_integratex = false,FLAG_integratey = false, FLAG_integratez = false;
-  bool FLAG_cutx = false;
-  bool FLAG_cuty = false;
-  bool FLAG_cutz = false;
-  int iminval[] = {0,0,0};
-  int imaxval[] = {0,0,0};
-  int sampling[3] = {1,1,1};
-
-  bool FLAG_xmin = false; double xminval = -9999.0;
-  bool FLAG_xmax = false; double xmaxval = +9999.0;
-  bool FLAG_ymin = false; double yminval = -9999.0;
-  bool FLAG_ymax = false; double ymaxval = +9999.0;
-  bool FLAG_zmin = false; double zminval = -9999.0;
-  bool FLAG_zmax = false; double zmaxval = +9999.0;
-  bool FLAG_VTK = false;
-  bool doSwap;
-  int isFileBigEndian;
-  double valueCutx; double valueCuty;
-  int dataNSize[3], rNproc[3], locOrigin[3], locNcells[3];
-  float *xiCoords, *yiCoords, *ziCoords;
-  float *riCoords[3];
-  int Nproc;
-  int Ncomp;
-  long size;
-  float *savedFields;
-  std::ostringstream nomefile_bin, outputfileName;
-  nomefile_bin << std::string(argv[1]);
-  std::ifstream file_bin;
-int fileNumber=getAndCheckFileNumber(nomefile_bin);
-
-  file_bin.open(nomefile_bin.str().c_str(), std::ios::binary | std::ios::in);
-
-  std::cout << "\nWelcome to the new reader" << std::endl;
-  std::cout << "I will read the file: " << nomefile_bin.str() << std::endl;
-  if (argc < 1){
-    printf("USAGE: reader input_file \n");
-  }
-
-  if (file_bin.fail()){
-    std::cout << "Input file non trovato" << std::endl;
-    return -3;
-  }
+void parseInputArguments(ALL_FLAGS &myFlags, int argc, char **argv){
   for (int i = 2; i < argc; i++){
     if (!std::strncmp(argv[i], "-lockx", 6)){
-      FLAG_lockr[0] = true;
+      myFlags.FLAG_lockr[0] = true;
     }
     if (!std::strncmp(argv[i], "-locky", 6)){
-      FLAG_lockr[1] = true;
+      myFlags.FLAG_lockr[1] = true;
     }
     if (!std::strncmp(argv[i], "-lockz", 6)){
-      FLAG_lockr[2] = true;
+      myFlags.FLAG_lockr[2] = true;
     }
-    if (!std::strncmp(argv[i], "-integratex", 11)){
-      FLAG_integratex = true;
-    }
+
     if (!std::strncmp(argv[i], "-xsample", 8)){
-      sampling[0] = atoi(argv[i + 1]);;
+      myFlags.sampling[0] = atoi(argv[i + 1]);;
     }
     if (!std::strncmp(argv[i], "-ysample", 8)){
-      sampling[1] = atoi(argv[i + 1]);;
+      myFlags.sampling[1] = atoi(argv[i + 1]);;
     }
     if (!std::strncmp(argv[i], "-zsample", 8)){
-      sampling[2] = atoi(argv[i + 1]);;
+      myFlags.sampling[2] = atoi(argv[i + 1]);;
     }
-    if (!std::strncmp(argv[i], "-cutx", 5)){
-      valueCutx = atof(argv[i + 1]);
-      FLAG_cutx = true;
-    }
-    if (!std::strncmp(argv[i], "-cuty", 5)){
-      valueCuty = atof(argv[i + 1]);
-      FLAG_cuty = true;
-    }
+
     if (!std::strncmp(argv[i], "-xmin", 5)){
-      FLAG_xmin = true;
-      xminval = atof(argv[i + 1]);
+      myFlags.FLAG_xmin = true;
+      myFlags.xminval = atof(argv[i + 1]);
     }
 
     if (!std::strncmp(argv[i], "-xmax", 5)){
-      FLAG_xmax = true;
-      xmaxval = atof(argv[i + 1]);
+      myFlags.FLAG_xmax = true;
+      myFlags.xmaxval = atof(argv[i + 1]);
     }
 
     if (!std::strncmp(argv[i], "-ymin", 5)){
-      FLAG_ymin = true;
-      yminval = atof(argv[i + 1]);
+      myFlags.FLAG_ymin = true;
+      myFlags.yminval = atof(argv[i + 1]);
     }
 
     if (!std::strncmp(argv[i], "-ymax", 5)){
-      FLAG_ymax = true;
-      ymaxval = atof(argv[i + 1]);
+      myFlags.FLAG_ymax = true;
+      myFlags.ymaxval = atof(argv[i + 1]);
     }
 
     if (!std::strncmp(argv[i], "-zmin", 5)){
-      FLAG_zmin = true;
-      zminval = atof(argv[i + 1]);
+      myFlags.FLAG_zmin = true;
+      myFlags.zminval = atof(argv[i + 1]);
     }
 
     if (!std::strncmp(argv[i], "-zmax", 5)){
-      FLAG_zmax = true;
-      zmaxval = atof(argv[i + 1]);
+      myFlags.FLAG_zmax = true;
+      myFlags.zmaxval = atof(argv[i + 1]);
     }
     if (!std::strncmp(argv[i], "-vtk", 3)){
-      FLAG_VTK = true;
-
+      myFlags.vtkOutput = true;
     }
 
   }
+}
 
-  file_bin.read((char*)&isFileBigEndian, sizeof(int));
-  doSwap = (isFileBigEndian!=is_big_endian());
-  printf("do swap? %i \n", doSwap);
-  file_bin.read((char*)dataNSize, 3 * sizeof(int));
-  if(doSwap)
-    swap_endian( dataNSize, 3);
-  file_bin.read((char*)rNproc, 3 * sizeof(int));
-  if(doSwap)
-    swap_endian( rNproc, 3);
+void writeUsageHelper(){
 
-  Nproc = rNproc[0] * rNproc[1] * rNproc[2];
-  xiCoords = new float[dataNSize[0]];
-  yiCoords = new float[dataNSize[1]];
-  ziCoords = new float[dataNSize[2]];
+  printf("USAGE: multiFrogReader $inputName\n");
+  printf("       inputName = stripped name: (e.g. E_FIELD_010.000.binn");
+  printf("                                  NOT: E_FIELD_010.000.bin.000)\n");
+  printf("       -lockx (to lock the X coord.)\n");
+  printf("       -xsample $XSAMPLING (to set the sampling along X)\n");
+  printf("       -xmin $XMIN (to set xmin)\n");
+  printf("       -xmax $XMAX (to set xmax)\n");
+  printf("       -vtk        (to get a vtk output file)\n");
+}
 
-  riCoords[0] = xiCoords;
-  riCoords[1] = yiCoords;
-  riCoords[2] = ziCoords;
+void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData){
+  myFlags.imaxval[0] = fileData.dataNSize[0];
+  myFlags.imaxval[1] = fileData.dataNSize[1];
+  myFlags.imaxval[2] = fileData.dataNSize[2];
 
-  file_bin.read((char*)(&Ncomp), sizeof(int));
-  if(doSwap)
-    swap_endian( &Ncomp, 1);
+  if (myFlags.FLAG_xmin)
+    myFlags.iminval[0] = findIndexMin(myFlags.xminval, fileData.riCoords[0], fileData.dataNSize[0]);
 
-  for (int c = 0; c < 3; c++){
-    file_bin.read((char*)riCoords[c], dataNSize[c] * sizeof(float));
-    if(doSwap)
-      swap_endian( riCoords[c], dataNSize[c]);
-  }
+  if (myFlags.FLAG_xmax)
+    myFlags.imaxval[0] = findIndexMax(myFlags.xmaxval, fileData.riCoords[0], fileData.dataNSize[0]);
 
-  std::cout << "IsBigEndian:  " << isFileBigEndian << "\n";
-  std::cout << "Ncells:  " << dataNSize[0] << "  " << dataNSize[1] << "  " << dataNSize[2] << "\n";
-  std::cout << "Nprocs:  " << rNproc[0] << "  " << rNproc[1] << "  " << rNproc[2] << "\n";
-  std::cout << "Ncomp: " << Ncomp << std::endl;
-  std::cout << "sizeof long =  " << sizeof(long) << std::endl;
+  if (myFlags.FLAG_ymin)
+    myFlags.iminval[1] = findIndexMin(myFlags.yminval, fileData.riCoords[1], fileData.dataNSize[1]);
 
-  imaxval[0] = dataNSize[0];
-  imaxval[1] = dataNSize[1];
-  imaxval[2] = dataNSize[2];
+  if (myFlags.FLAG_ymax)
+    myFlags.imaxval[1] = findIndexMax(myFlags.ymaxval, fileData.riCoords[1], fileData.dataNSize[1]);
 
-  if (FLAG_xmin)
-    iminval[0] = findIndexMin(xminval, riCoords[0], dataNSize[0]);
+  if (myFlags.FLAG_zmin)
+    myFlags.iminval[2] = findIndexMin(myFlags.zminval, fileData.riCoords[2], fileData.dataNSize[2]);
 
-  if (FLAG_xmax)
-    imaxval[0] = findIndexMax(xmaxval, riCoords[0], dataNSize[0]);
+  if (myFlags.FLAG_zmax)
+    myFlags.imaxval[2] = findIndexMax(myFlags.zmaxval, fileData.riCoords[2], fileData.dataNSize[2]);
 
-  if (FLAG_ymin)
-    iminval[1] = findIndexMin(yminval, riCoords[1], dataNSize[1]);
 
-  if (FLAG_ymax)
-    imaxval[1] = findIndexMax(ymaxval, riCoords[1], dataNSize[1]);
-
-  if (FLAG_zmin)
-    iminval[2] = findIndexMin(zminval, riCoords[2], dataNSize[2]);
-
-  if (FLAG_zmax)
-    imaxval[2] = findIndexMax(zmaxval, riCoords[2], dataNSize[2]);
-
-  int allocN[3];
   for(int c=0; c <3; c++){
-    allocN[c] = (imaxval[c] - iminval[c])/sampling[c];
-    if((imaxval[c] - iminval[c])%sampling[c]){
-      allocN[c]++;
+    outputData.lockIndex[c]=outputData.allocN[c]/2;
+    outputData.allocN[c] = (myFlags.imaxval[c] - myFlags.iminval[c])/myFlags.sampling[c];
+    if((myFlags.imaxval[c] - myFlags.iminval[c])%myFlags.sampling[c]){
+      outputData.allocN[c]++;
     }
   }
 
-  int lockIndex[3]={allocN[0]/2,allocN[1]/2,allocN[2]/2};
   for(int c=0; c<3; c++)
-    if(FLAG_lockr[c]){
-      lockIndex[c]=allocN[c]/2;
-      iminval[c] = allocN[c]/2;
-      imaxval[c] = iminval[c] + 1;
-      allocN[c]=1;
+    if(myFlags.FLAG_lockr[c]){
+      outputData.lockIndex[c]=outputData.allocN[c]/2;
+      myFlags.iminval[c] = outputData.allocN[c]/2;
+      myFlags.imaxval[c] = myFlags.iminval[c] + 1;
+      outputData.allocN[c]=1;
     }
-  for(int c=0; c<3; c++)
-    printf("FLAG_lockr[%i] = %i  allocN[%i] = %i   lockIndex[%i]=%i \n", c, FLAG_lockr[c], c, allocN[c], c, lockIndex[c]);
+}
 
-  size = ((long)Ncomp)*((long)allocN[0])*((long)allocN[1])*((long)allocN[2]);
-  savedFields = new float[size];
-
-  std::cout << "Reading ..." << std::endl; std::cout.flush();
-
-
-  for (int rank = 0; rank < Nproc; rank++){
-    file_bin.read((char*)locOrigin, 3 * sizeof(int));
-    if(doSwap)
-      swap_endian( locOrigin,3);
-
-    file_bin.read((char*)locNcells, 3 * sizeof(int));
-    if(doSwap)
-      swap_endian( locNcells,3);
-
-    //        std::cout << "rank= " << rank << "  ";
-    //        //std::cout << std::endl;
-    //        std::cout << "locNcells: " << locNcells[0] << "  " << locNcells[1] << "  " << locNcells[2] << " ";
-    //        std::cout << "orign: " << locOrigin[0] << "  " << locOrigin[1] << "  " << locOrigin[2] << "\n";
-    float *localFields;
-    int locSize = Ncomp*locNcells[0] * locNcells[1] * locNcells[2];
-    localFields = new float[locSize];
-    file_bin.read((char*)localFields, locSize*sizeof(float));
-    if(doSwap)
-      swap_endian( localFields,locSize);
-
-    drawLoadBar(rank + 1, Nproc, Nproc, 30);
-
-    bool flagRead=true;
-    for (int c = 0; c < 3; c++){
-      if(FLAG_lockr[c])
-        if( locOrigin[c]<=lockIndex[c]&& ((locOrigin[c]+locNcells[c])>lockIndex[c]) )
-          flagRead = flagRead && true;
-        else
-          flagRead = false;
-    }
-    int shouldWrite[3];
-    if(flagRead){
-      int savedI[3], globalI[3];
-      for (int k = 0; k < locNcells[2]; k++){
-        globalI[2] = k + locOrigin[2];
-        savedI[2] = (globalI[2] - iminval[2])/sampling[2];
-        shouldWrite[2] = !((globalI[2] - iminval[2])%sampling[2]);
-        for (int j = 0; j < locNcells[1]; j++){
-          globalI[1] = j + locOrigin[1];
-          savedI[1] = (globalI[1] - iminval[1])/sampling[1];
-          shouldWrite[1] = !((globalI[1] - iminval[1])%sampling[1]);
-
-          for (int i = 0; i < locNcells[0]; i++){
-            globalI[0] = i + locOrigin[0];
-            savedI[0] = (globalI[0] - iminval[0])/sampling[0];
-            shouldWrite[0] = !((globalI[0] - iminval[0])%sampling[0]);
-
-            for (int c = 0; c < Ncomp; c++){
-              //long index = c + Ncomp*savedI[0]*(!FLAG_lockr[0]) + Ncomp*allocN[0] * savedI[1]* (!FLAG_lockr[1]) + Ncomp*allocN[0] * allocN[1] * savedI[2] * (!FLAG_lockr[2]);
-              long index = c*allocN[0]*allocN[1]*allocN[2] + savedI[0] + allocN[0] * savedI[1] +  allocN[0]*allocN[1]*savedI[2];
-              long locIndex = c + Ncomp*i + Ncomp*locNcells[0] * j + Ncomp*locNcells[0] * locNcells[1] * k;
-
-              if(globalI[0] >= iminval[0] && globalI[0] < imaxval[0] && shouldWrite[0])
-                if(globalI[1] >= iminval[1] && globalI[1] < imaxval[1] && shouldWrite[1])
-                  if(globalI[2] >= iminval[2] && globalI[2] < imaxval[2] && shouldWrite[2]){
-                    if (index >= size){
-          std::cout<< index << "( " << size << " ) " << c << " " << i << " " << j << " " << k << " " << savedI[0] << " " << savedI[1] << " " << savedI[2] << " " << std::endl;
-      }
-                    else
-                      savedFields[index] = localFields[locIndex];
-                  }
-            }
-          }
-        }
-      }
-    }
-    delete[] localFields;
-  }
-  file_bin.close();
-  std::cout << std::endl << "Writing to file ..." << std::endl; std::cout.flush();
-
-  if(FLAG_VTK){
-    printf("VTK enabled\n");
-
-
-
-    long long int totPts = allocN[0] * allocN[1]* allocN[2];
-    double dr[3];
-    if(!is_big_endian)
-      swap_endian(savedFields, size);
-    dr[0]=xiCoords[sampling[0]+iminval[0]]-xiCoords[iminval[0]];
-    dr[1]=yiCoords[sampling[1]+iminval[1]]-yiCoords[iminval[1]];
-    dr[2]=ziCoords[sampling[2]+iminval[2]]-ziCoords[iminval[2]];
-    for(int c =0; c < 3; c++){
-      if(allocN[c]==1)
-        dr[c]=0;
-    }
-    std::string compNames[Ncomp];
-    if(Ncomp==1){
-      compNames[0] = "scalar";
-    }
-    else if(Ncomp==3){
-      compNames[0] = "Vx";
-      compNames[1] = "Vy";
-      compNames[2] = "Vz";
-    }
-
-    outputfileName << std::string(argv[1]) << ".vtk";
-    std::ofstream file_vtk;
-    file_vtk.open(outputfileName.str().c_str());
-    std::stringstream bufstream;
-
-    std::cout << "Writing the fields file\n";
-    bufstream << "# vtk DataFile Version 2.0\n";
-    bufstream << "titolo mio\n";
-    bufstream << "BINARY\n";
-    bufstream << "DATASET STRUCTURED_POINTS\n";
-    bufstream << "DIMENSIONS " << allocN[0] << "  " << allocN[1] << "  "  << allocN[2] << std::endl;
-    bufstream << "ORIGIN " << xiCoords[0] << "  "  << yiCoords[0] << "  "  <<  ziCoords[0] << std::endl;
-    bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
-    bufstream << "POINT_DATA " << totPts << std::endl;
-    std::string bufstring = bufstream.str();
-    file_vtk.write(bufstring.c_str(), bufstring.length());
-
-    for (int cc = 0; cc < Ncomp; cc++){
-      std::stringstream ssbuf;
-      ssbuf << "SCALARS " << compNames[cc]  <<" float 1\n";
-      ssbuf << "LOOKUP_TABLE default\n";
-      bufstring = ssbuf.str();
-      file_vtk.write(bufstring.c_str(), bufstring.length());
-      file_vtk.write((char*)(&savedFields[cc*totPts]), sizeof(float)*totPts);
-    }
-    file_vtk.close();
-
+void updateFileIfEOF(std::ifstream &file_bin, int &fileId, std::string strippedName){
+  char dummyBuffer[12];
+  file_bin.read(dummyBuffer, 12);
+  if(file_bin.eof() ){
+    file_bin.close();
+    fileId ++;
+    std::string currentFileName = composeFileName(strippedName,fileId);
+    std::cout << "\nApro il file >>> " << currentFileName << std::endl;
+    file_bin.open(currentFileName.c_str(), std::ios::binary | std::ios::in);
   }
   else{
-    outputfileName << std::string(argv[1]) << ".txt";
-    std::ofstream file_txt;
-    long long int totPts = allocN[0] * allocN[1]* allocN[2];
-    file_txt.open(outputfileName.str().c_str());
-    for(int c=0; c < 3; c++)
-      printf("allocN[%i] = %i   ", c, allocN[c]);
-    printf("\n");
-    std::stringstream bufstream;
-    for (long kk = 0; kk <allocN[2] ; kk++){
-      for (long jj = 0; jj <allocN[1] ; jj++){
-        for (long ii = 0; ii <allocN[0]; ii++){
-          int global[3];
-          global[0] = ii*sampling[0] + iminval[0];
-          global[1] = jj*sampling[1] + iminval[1];
-          global[2] = kk*sampling[2] + iminval[2];
-
-          drawLoadBar(ii + (jj)*allocN[0] + kk*allocN[0]*allocN[1] + 1, totPts, allocN[0], 30);
-
-          bufstream << std::setw(12) << std::setprecision(5) << xiCoords[global[0]];
-          bufstream << std::setw(12) << std::setprecision(5) << yiCoords[global[1]];
-          bufstream << std::setw(12) << std::setprecision(5) << ziCoords[global[2]];
-          for (int c = 0; c < Ncomp; c++){
-            //long index = c + Ncomp*ii + Ncomp*allocN[0] * jj + Ncomp*allocN[0] * allocN[1] * kk;
-            long index = c*allocN[0]*allocN[1]*allocN[2] + ii + allocN[0]*jj +  allocN[0]*allocN[1]*kk;
-
-            bufstream << std::setw(12) << std::setprecision(5) << savedFields[index];
-          }
-          bufstream << std::endl;
-        }
-        bufstream << std::endl;
-      }
-    }
-    std::string bufstring = bufstream.str();
-    file_txt.write(bufstring.c_str(), bufstring.length());
-    file_txt.close();
+    file_bin.seekg(-12, std::ios::cur);
   }
-  std::cout << std::endl;
-
-
-
-
 }
 
-
-int is_big_endian(){
-  union {
-    uint32_t i;
-    char c[4];
-  } bint = { 0x01020304 };
-
-  return bint.c[0] == 1;
+void readFromFile(std::ifstream &file_bin, int *buffer, int N, bool doSwap){
+  file_bin.read((char*)buffer, N * sizeof(int));
+  if(doSwap)
+    swap_endian( buffer,N);
+}
+void readFromFile(std::ifstream &file_bin, float *buffer, int N, bool doSwap){
+  file_bin.read((char*)buffer, N * sizeof(float));
+  if(doSwap)
+    swap_endian( buffer,N);
 }
 
-inline void drawLoadBar(long i, long Ntot, long R, int sizeBar){
-  if (i % (Ntot / R) != 0) return;
+void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileData, std::string outputfileName){
 
-  std::cout << "\r";
-
-  float ratio = i / ((float)Ntot);
-
-  int numSymbols = (int)(sizeBar*ratio);
-
-  std::cout << std::setw(3) << (int)(ratio * 100) << "% [";
-
-  int j;
-  for (j = 0; j < numSymbols; j++){
-    std::cout << "=";
+  uint64_t totPts = outputData.allocN[0] * outputData.allocN[1]* outputData.allocN[2];
+  double dr[3];
+  if(!is_big_endian)
+    swap_endian(outputData.savedFields, outputData.size);
+  dr[0]=fileData.riCoords[0][myFlags.sampling[0]+myFlags.iminval[0]]-fileData.riCoords[0][myFlags.iminval[0]];
+  dr[1]=fileData.riCoords[1][myFlags.sampling[1]+myFlags.iminval[1]]-fileData.riCoords[1][myFlags.iminval[1]];
+  dr[2]=fileData.riCoords[2][myFlags.sampling[2]+myFlags.iminval[2]]-fileData.riCoords[2][myFlags.iminval[2]];
+  for(int c =0; c < 3; c++){
+    if(outputData.allocN[c]==1)
+      dr[c]=0;
   }
-  for (; j < sizeBar; j++){
-    std::cout << " ";
+  std::string compNames[fileData.Ncomp];
+  if(fileData.Ncomp==1){
+    compNames[0] = "scalar";
   }
-
-  std::cout << "]";
-  std::cout.flush();
-}
-
-
-int findIndexMin (double val, float* coords, int numcoords){
-  if (numcoords <= 1)
-    return 0;
-
-  if (val <= coords[0])
-    return 0;
-
-  for (int i = 1; i < numcoords; i++){
-    if (val < coords[i])
-      return (i-1);
-  }
-
-}
-
-int findIndexMax (double val, float* coords, int numcoords){
-  if (numcoords<= 1)
-    return 0;
-
-  if (val >= coords[numcoords-1])
-    return (numcoords-1);
-
-  for (int i = (numcoords-1); i >= 0; i--){
-    if (val > coords[i])
-      return (i+1);
+  else if(fileData.Ncomp==3){
+    compNames[0] = "Vx";
+    compNames[1] = "Vy";
+    compNames[2] = "Vz";
   }
 
 
+  std::ofstream file_vtk;
+  file_vtk.open(outputfileName.c_str());
+  std::stringstream bufstream;
+
+  std::cout << "Writing the fields file\n";
+  bufstream << "# vtk DataFile Version 2.0\n";
+  bufstream << "titolo mio\n";
+  bufstream << "BINARY\n";
+  bufstream << "DATASET STRUCTURED_POINTS\n";
+  bufstream << "DIMENSIONS " << outputData.allocN[0] << "  " << outputData.allocN[1] << "  "  << outputData.allocN[2] << std::endl;
+  bufstream << "ORIGIN " << fileData.riCoords[0][0] << "  "  << fileData.riCoords[1][0] << "  "  <<  fileData.riCoords[2][0] << std::endl;
+  bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
+  bufstream << "POINT_DATA " << totPts << std::endl;
+  std::string bufstring = bufstream.str();
+  file_vtk.write(bufstring.c_str(), bufstring.length());
+
+  for (int cc = 0; cc < fileData.Ncomp; cc++){
+    std::stringstream ssbuf;
+    ssbuf << "SCALARS " << compNames[cc]  <<" float 1\n";
+    ssbuf << "LOOKUP_TABLE default\n";
+    bufstring = ssbuf.str();
+    file_vtk.write(bufstring.c_str(), bufstring.length());
+    file_vtk.write((char*)(&outputData.savedFields[cc*totPts]), sizeof(float)*totPts);
+  }
+  file_vtk.close();
 }
-
-
