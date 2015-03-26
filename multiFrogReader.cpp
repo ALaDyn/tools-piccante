@@ -573,7 +573,7 @@ void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData
   for(int c=0; c<3; c++)
     if(myFlags.FLAG_lockr[c]){
       outputData.lockIndex[c]=fileData.dataNSize[c]/2;
-      myFlags.iminval[c] = fileData.dataNSize/2;
+      myFlags.iminval[c] = fileData.dataNSize[c]/2;
       myFlags.imaxval[c] = myFlags.iminval[c] + 1;
       outputData.allocN[c]=1;
     }
