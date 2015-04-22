@@ -639,7 +639,7 @@ void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileDat
   bufstream << "BINARY\n";
   bufstream << "DATASET STRUCTURED_POINTS\n";
   bufstream << "DIMENSIONS " << outputData.allocN[0] << "  " << outputData.allocN[1] << "  "  << outputData.allocN[2] << std::endl;
-  bufstream << "ORIGIN " << fileData.riCoords[0][0] << "  "  << fileData.riCoords[1][0] << "  "  <<  fileData.riCoords[2][0] << std::endl;
+  bufstream << "ORIGIN " << fileData.riCoords[0][myFlags.iminval[0]] << "  "  << fileData.riCoords[1][myFlags.iminval[1]] << "  "  <<  fileData.riCoords[2][myFlags.iminval[2]] << std::endl;
   bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
   bufstream << "POINT_DATA " << totPts << std::endl;
   std::string bufstring = bufstream.str();
