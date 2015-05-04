@@ -233,7 +233,7 @@ int main( int narg,  char **args){
             savedI[0] = (globalI[0] - myFlags.iminval[0])/myFlags.sampling[0];
             shouldWrite[0] = !((globalI[0] - myFlags.iminval[0])%myFlags.sampling[0]);
 
-            for (int c = 0; c < fileData.Ncomp; c++){
+            for (uint64_t c = 0; c < fileData.Ncomp; c++){
               uint64_t index = c*outputData.allocN[0]*outputData.allocN[1]*outputData.allocN[2] + savedI[0] + outputData.allocN[0] * savedI[1] +  outputData.allocN[0]*outputData.allocN[1]*savedI[2];
               uint64_t locIndex = c + fileData.Ncomp*i + fileData.Ncomp*locNcells[0] * j + fileData.Ncomp*locNcells[0] * locNcells[1] * k;
 

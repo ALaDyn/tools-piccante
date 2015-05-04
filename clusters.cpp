@@ -28,7 +28,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 //#include <boost/random/mersenne_twister.hpp>
 //#include <boost/random/normal_distribution.hpp>
 //#include <boost/random/variate_generator.hpp>
-#define _DIMENSIONS 2
+#define _DIMENSIONS 3
 
 //typedef boost::uniform_real<> UniformRealDistribution;
 //typedef boost::mt19937 MTGenerator;
@@ -37,15 +37,17 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #define MAX(x,y)	((x)>(y)?(x):(y))
 #define PRINT_FREQUENCY 100
 
-#define Z_MIN 0
-#define Z_MAX 5
-#define Y_MIN -5
-#define Y_MAX 5
+#define Z_MIN -3
+#define Z_MAX 3
+#define Y_MIN -3
+#define Y_MAX 3
 #define STEP_SIZE 0.1
 #define RADIUS_SIZE 0.05
 #define THRESHOLD 0.001
 #define DENSITY_SPACING 0.1
 #define TARGET_LENGTH 10
+
+#define SWAPENDIANESS true
 
 struct PARTICLE{
     float coord[3];
@@ -149,9 +151,9 @@ void pushParticleSteps(PARTICLE *particle, GRID *grid){
       particle->coord[0] += grid->step;
     else if(buffer<=(PXD+PXU+PYD))
       particle->coord[1] -= grid->step;
-    else if(buffer<=(PXD+PXU+PYD-PYU))
+    else if(buffer<=(PXD+PXU+PYD+PYU))
       particle->coord[1] += grid->step;
-    else if(buffer<=(PXD+PXU+PYD-PYU+PZD))
+    else if(buffer<=(PXD+PXU+PYD+PYU+PZD))
       particle->coord[2] -= grid->step;
     else
       particle->coord[2] += grid->step;
@@ -409,16 +411,6 @@ std::cout << " "<< std::endl;
     }
     spheresCoords[p*4+3] = foam[p].radius;
   }
-  of1.open("spheres.bin", std::ofstream::out | std::ofstream::trunc);
-  of1.write((char*)&Npart,sizeof(int));
-  of1.write((char*)&fillingFactor,sizeof(float));
-  of1.write((char*)grid.rMin,sizeof(float)*3);
-  of1.write((char*)grid.rMax,sizeof(float)*3);
-  of1.write((char*)spheresCoords,sizeof(float)*pointerSize);
-  of1.close();
-
-
-
   of1.open("spheres.txt", std::ofstream::out | std::ofstream::trunc);
   of1 << Npart << std::endl;
   of1 << fillingFactor << std::endl;
@@ -432,6 +424,33 @@ std::cout << " "<< std::endl;
   }
   of1.close();
 
+  if(SWAPENDIANESS){
+    of1.open("spheres_swap.bin", std::ofstream::out | std::ofstream::trunc);
+    swap_endian(&Npart,1);
+    swap_endian(&fillingFactor,1);
+    swap_endian(grid.rMin,3);
+    swap_endian(grid.rMax,3);
+    swap_endian(spheresCoords,pointerSize);
+    of1.write((char*)&Npart,sizeof(int));
+    of1.write((char*)&fillingFactor,sizeof(float));
+    of1.write((char*)grid.rMin,sizeof(float)*3);
+    of1.write((char*)grid.rMax,sizeof(float)*3);
+    of1.write((char*)spheresCoords,sizeof(float)*pointerSize);
+    of1.close();
+  }
+  else{
+    of1.open("spheres.bin", std::ofstream::out | std::ofstream::trunc);
+    of1.write((char*)&Npart,sizeof(int));
+    of1.write((char*)&fillingFactor,sizeof(float));
+    of1.write((char*)grid.rMin,sizeof(float)*3);
+    of1.write((char*)grid.rMax,sizeof(float)*3);
+    of1.write((char*)spheresCoords,sizeof(float)*pointerSize);
+    of1.close();
+  }
 
   return 0;
 }
+
+
+
+
