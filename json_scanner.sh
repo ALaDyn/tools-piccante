@@ -18,7 +18,7 @@
 
 
 JOB_FILE=galileo-64.cmd
-JSON_FILE=input.json
+JSON_FILE=inputPiccante.json
 
 
 preplasmas=$(awk 'BEGIN{for(i=1.0;i<=3.0;i+=1.0)print i}')
@@ -66,11 +66,11 @@ NUMERO_PUNTI_GRIGLIA_Z=1
 TMAX=100.0
 
 XMIN=0.0
-XMAX=72.0
-YMIN=-36.0
-YMAX=36.0
-ZMIN=0.0
-ZMAX=0.1
+XMAX=71.68
+YMIN=-35.84
+YMAX=35.84
+ZMIN=-1.0
+ZMAX=1.0
 
 COURANT_FRIEDRICHS_LEWY_PARAMETER=0.8
 
@@ -79,14 +79,15 @@ BOUNDARY_Y="open"
 BOUNDARY_Z="periodic"
 
 LASER_POLARIZATION="P"
-POSIZIONE_INIZIALE_PICCO_IMPULSO_LASER=16.5
-POSIZIONE_FUOCO_LASER=33.01
+POSIZIONE_INIZIALE_PICCO_IMPULSO_LASER=16.51
+POSIZIONE_FUOCO_LASER=33.02
 LUNGHEZZA_LASER_FWHM=16.5
 WAIST_LASER=6.2
 PARAMETRO_ADIMENSIONALE_LASER_A0=3.0
 LUNGHEZZA_ONDA_LASER=0.8
 
 XMIN_CLOUD=$(echo ${POSIZIONE_FUOCO_LASER} + 0.01 | bc)
+#XMIN_CLOUD=$(echo ${POSIZIONE_FUOCO_LASER} | bc)
 XMAX_CLOUD=$(echo ${XMIN_CLOUD} + ${pre} | bc)
 YMIN_CLOUD=$YMIN
 YMAX_CLOUD=$YMAX
@@ -288,19 +289,19 @@ printf '      \"isMarker\": 0,\n' >> ${JSON_FILE}
 printf '      \"isTest\": false\n' >> ${JSON_FILE}
 printf '    }\n' >> ${JSON_FILE}
 printf '  ],\n' >> ${JSON_FILE}
-printf '  \"Domains\":[\n' >> ${JSON_FILE}
-printf '    {\n' >> ${JSON_FILE}
-printf '      \"name\": \"line\",\n' >> ${JSON_FILE}
-printf '      \"freeDim\": [1,0,0],\n' >> ${JSON_FILE}
-printf '      \"pointCoord\": [10.0,0.0,0.0]\n' >> ${JSON_FILE}
-printf '    }\n' >> ${JSON_FILE}
-printf '  ],\n' >> ${JSON_FILE}
+#printf '  \"Domains\":[\n' >> ${JSON_FILE}
+#printf '    {\n' >> ${JSON_FILE}
+#printf '      \"name\": \"line\",\n' >> ${JSON_FILE}
+#printf '      \"freeDim\": [1,0,0],\n' >> ${JSON_FILE}
+#printf '      \"pointCoord\": [10.0,0.0,0.0]\n' >> ${JSON_FILE}
+#printf '    }\n' >> ${JSON_FILE}
+#printf '  ],\n' >> ${JSON_FILE}
 printf '  \"Output\":[\n' >> ${JSON_FILE}
-printf '    {\"type\": \"EB\", \"to\": 10.0, \"every\": 10.0},\n' >> ${JSON_FILE}
-printf '    {\"type\": \"Density\", \"spec\": \"ELEcloud\", \"every\":10.0},\n' >> ${JSON_FILE}
-printf '    {\"type\": \"Density\", \"spec\": \"ELEbulk\", \"every\":10.0},\n' >> ${JSON_FILE}
-printf '    {\"type\": \"Density\", \"spec\": \"ELEcloud\", \"every\":1.0, \"in\": \"line\"},\n' >> ${JSON_FILE}
-printf '    {\"type\": \"Density\", \"spec\": \"ELEbulk\", \"every\":1.0, \"in\": \"line\"},\n' >> ${JSON_FILE}
+#printf '    {\"type\": \"EB\", \"every\": 10.0},\n' >> ${JSON_FILE}
+#printf '    {\"type\": \"Density\", \"spec\": \"ELEcloud\", \"every\":10.0},\n' >> ${JSON_FILE}
+#printf '    {\"type\": \"Density\", \"spec\": \"ELEbulk\", \"every\":10.0},\n' >> ${JSON_FILE}
+#printf '    {\"type\": \"Density\", \"spec\": \"ELEcloud\", \"every\":1.0, \"in\": \"line\"},\n' >> ${JSON_FILE}
+#printf '    {\"type\": \"Density\", \"spec\": \"ELEbulk\", \"every\":1.0, \"in\": \"line\"},\n' >> ${JSON_FILE}
 printf '    {\"type\": \"Diag\", \"every\": 1.0}\n' >> ${JSON_FILE}
 printf '  ]\n' >> ${JSON_FILE}
 printf '\n' >> ${JSON_FILE}
@@ -308,7 +309,7 @@ printf '}\n' >> ${JSON_FILE}
 printf '\n' >> ${JSON_FILE}
 
 
-#qsub ${JOB_FILE}
+qsub ${JOB_FILE}
 
 cd ..
 
