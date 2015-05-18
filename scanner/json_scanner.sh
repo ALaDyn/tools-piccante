@@ -27,10 +27,11 @@ preplasmas=$(awk 'BEGIN{for(i=1.0;i<=3.0;i+=1.0)print i}')
 #densities=$(awk 'BEGIN{for(i=0.5;i<=3.0;i+=0.5)print i}')
 densities=1.0
 
-ramps=$(awk 'BEGIN{for(i=0.25;i<=0.75;i+=0.25)print i}')
-#ramps=0.0
+#ramps=$(awk 'BEGIN{for(i=0.25;i<=0.75;i+=0.25)print i}')
+ramps=0.75
 
-centrals=$(awk 'BEGIN{for(i=2.0;i<=10.0;i+=1.0)print i}')
+centrals=$(awk 'BEGIN{for(i=2.0;i<=4.0;i+=1.0)print i}')
+#centrals=$(awk 'BEGIN{for(i=2.0;i<=10.0;i+=1.0)print i}')
 #centrals=2.4
 
 #contams=$(awk 'BEGIN{for(i=0.05;i<=0.1;i+=0.01)print i}')
@@ -57,13 +58,15 @@ cp ../${JOB_FILE} .
 rm -f ${JSON_FILE}
 touch ${JSON_FILE}
 
+DO_DUMP="true"
+DO_DUMP_EVERY=50.0
 
 NCPU=64
 DIMENSIONI=2
 NUMERO_PUNTI_GRIGLIA_X=7168
 NUMERO_PUNTI_GRIGLIA_Y=3584
 NUMERO_PUNTI_GRIGLIA_Z=1
-TMAX=100.0
+TMAX=50.0
 
 XMIN=0.0
 XMAX=71.68
@@ -138,10 +141,10 @@ NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_POSTERIORE=4
 
 printf '{\n' >> ${JSON_FILE}
 printf '  \"VERSION\": 2,\n' >> ${JSON_FILE}
-printf '  \"dimensions\": "${DIMENSIONI}",\n' >> ${JSON_FILE}
+printf '  \"dimensions\": %s,\n' "${DIMENSIONI}" >> ${JSON_FILE}
 printf '  \"masterProc\": 0,\n' >> ${JSON_FILE}
 printf '  \"OutputPath\": \"OUTPUT\",\n' >> ${JSON_FILE}
-printf '  \"radiationFriction\": true,\n' >> ${JSON_FILE}
+printf '  \"radiationFriction\": false,\n' >> ${JSON_FILE}
 printf '  \"courantFactor\": %s,\n' "${COURANT_FRIEDRICHS_LEWY_PARAMETER}" >> ${JSON_FILE}
 printf '  \"nProcY\": %s,\n' "${NCPU}" >> ${JSON_FILE}
 printf '  \"xRange\": [%s, %s],\n' "$XMIN" "$XMAX" >> ${JSON_FILE}
@@ -169,8 +172,8 @@ printf '  \"restart\":{\n' >> ${JSON_FILE}
 printf '    \"DumpPath\": \"DUMP\",\n' >> ${JSON_FILE}
 printf '    \"doRestart\": false,\n' >> ${JSON_FILE}
 printf '    \"restartFromDump\": 1,\n' >> ${JSON_FILE}
-printf '    \"doDump\": false,\n' >> ${JSON_FILE}
-printf '    \"dumpEvery\": 2.0\n' >> ${JSON_FILE}
+printf '    \"doDump\": %s,\n' "${DO_DUMP}" >> ${JSON_FILE}
+printf '    \"dumpEvery\": %s\n' "${DO_DUMP_EVERY}" >> ${JSON_FILE}
 printf '  },\n' >> ${JSON_FILE}
 printf '  \"Laser\":[\n' >> ${JSON_FILE}
 printf '    {\n' >> ${JSON_FILE}
@@ -256,7 +259,7 @@ printf '      \"distributionParams\": [6.0e-4],\n' >> ${JSON_FILE}
 printf '      \"distributionAddMomentum\": [0.0,0.0,0.0]\n' >> ${JSON_FILE}
 printf '    },\n' >> ${JSON_FILE}
 printf '    {\n' >> ${JSON_FILE}
-printf '      \"enabled\": false,\n' >> ${JSON_FILE}
+printf '      \"enabled\": true,\n' >> ${JSON_FILE}
 printf '      \"name\": \"IONcloud\",\n' >> ${JSON_FILE}
 printf '      \"plasma\": \"cloud\",\n' >> ${JSON_FILE}
 printf '      \"ParticlesPerCell\": [%s,%s,%s],\n' "${NUMERO_IONI_LONGITUDINALMENTE_PER_CELLA_LAYER_FRONTALE}" "${NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_FRONTALE}" "${NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_FRONTALE}" >> ${JSON_FILE}
@@ -267,7 +270,7 @@ printf '      \"isMarker\": 0,\n' >> ${JSON_FILE}
 printf '      \"isTest\": false\n' >> ${JSON_FILE}
 printf '    },\n' >> ${JSON_FILE}
 printf '    {\n' >> ${JSON_FILE}
-printf '      \"enabled\": false,\n' >> ${JSON_FILE}
+printf '      \"enabled\": true,\n' >> ${JSON_FILE}
 printf '      \"name\": \"IONbulk\",\n' >> ${JSON_FILE}
 printf '      \"plasma\": \"bulk\",\n' >> ${JSON_FILE}
 printf '      \"ParticlesPerCell\": [%s,%s,%s],\n' "${NUMERO_IONI_LONGITUDINALMENTE_PER_CELLA_LAYER_CENTRALE}" "${NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_CENTRALE}" "${NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_CENTRALE}" >> ${JSON_FILE}
@@ -278,7 +281,7 @@ printf '      \"isMarker\": 0,\n' >> ${JSON_FILE}
 printf '      \"isTest\": false\n' >> ${JSON_FILE}
 printf '    },\n' >> ${JSON_FILE}
 printf '    {\n' >> ${JSON_FILE}
-printf '      \"enabled\": false,\n' >> ${JSON_FILE}
+printf '      \"enabled\": true,\n' >> ${JSON_FILE}
 printf '      \"name\": \"PROTcont\",\n' >> ${JSON_FILE}
 printf '      \"plasma\": \"cont\",\n' >> ${JSON_FILE}
 printf '      \"ParticlesPerCell\": [%s,%s,%s],\n' "${NUMERO_IONI_LONGITUDINALMENTE_PER_CELLA_LAYER_POSTERIORE}" "${NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_POSTERIORE}" "${NUMERO_IONI_TRASVERSALMENTE_PER_CELLA_LAYER_POSTERIORE}" >> ${JSON_FILE}
