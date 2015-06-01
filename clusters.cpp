@@ -354,7 +354,7 @@ int main(int narg, char **args){
       if(isParticleTouching(&particle,&foam, grid) ){
         foam.push_back(particle);
         grid.rMax[0] = MAX(grid.rMax[0],particle.coord[0]);
-         initializeParticles(&particle, &grid);
+
         break;
       }
 #endif
