@@ -233,7 +233,7 @@ int main( int narg,  char **args){
             savedI[0] = (globalI[0] - myFlags.iminval[0])/myFlags.sampling[0];
             shouldWrite[0] = !((globalI[0] - myFlags.iminval[0])%myFlags.sampling[0]);
 
-            for (int c = 0; c < fileData.Ncomp; c++){
+            for (uint64_t c = 0; c < fileData.Ncomp; c++){
               uint64_t index = c*outputData.allocN[0]*outputData.allocN[1]*outputData.allocN[2] + savedI[0] + outputData.allocN[0] * savedI[1] +  outputData.allocN[0]*outputData.allocN[1]*savedI[2];
               uint64_t locIndex = c + fileData.Ncomp*i + fileData.Ncomp*locNcells[0] * j + fileData.Ncomp*locNcells[0] * locNcells[1] * k;
 
@@ -563,7 +563,7 @@ void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData
 
 
   for(int c=0; c <3; c++){
-    outputData.lockIndex[c]=outputData.allocN[c]/2;
+    outputData.lockIndex[c]=fileData.dataNSize[c]/2;
     outputData.allocN[c] = (myFlags.imaxval[c] - myFlags.iminval[c])/myFlags.sampling[c];
     if((myFlags.imaxval[c] - myFlags.iminval[c])%myFlags.sampling[c]){
       outputData.allocN[c]++;
@@ -572,8 +572,8 @@ void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData
 
   for(int c=0; c<3; c++)
     if(myFlags.FLAG_lockr[c]){
-      outputData.lockIndex[c]=outputData.allocN[c]/2;
-      myFlags.iminval[c] = outputData.allocN[c]/2;
+      outputData.lockIndex[c]=fileData.dataNSize[c]/2;
+      myFlags.iminval[c] = fileData.dataNSize[c]/2;
       myFlags.imaxval[c] = myFlags.iminval[c] + 1;
       outputData.allocN[c]=1;
     }
@@ -639,7 +639,7 @@ void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileDat
   bufstream << "BINARY\n";
   bufstream << "DATASET STRUCTURED_POINTS\n";
   bufstream << "DIMENSIONS " << outputData.allocN[0] << "  " << outputData.allocN[1] << "  "  << outputData.allocN[2] << std::endl;
-  bufstream << "ORIGIN " << fileData.riCoords[0][0] << "  "  << fileData.riCoords[1][0] << "  "  <<  fileData.riCoords[2][0] << std::endl;
+  bufstream << "ORIGIN " << fileData.riCoords[0][myFlags.iminval[0]] << "  "  << fileData.riCoords[1][myFlags.iminval[1]] << "  "  <<  fileData.riCoords[2][myFlags.iminval[2]] << std::endl;
   bufstream << "SPACING " << dr[0] << "  "  << dr[1] << "  "  << dr[2] << std::endl;
   bufstream << "POINT_DATA " << totPts << std::endl;
   std::string bufstring = bufstream.str();
