@@ -229,24 +229,30 @@ int main(int narg, char **args)
 
     long j = 0;
     long k = 0;
+    std::stringstream bufstream;
     for (long i = 0; i < first_bins; i++){
       double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
-      outfile << fcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
+      bufstream << fcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
     }
+    std::string bufstring = bufstream.str();
+    outfile.write(bufstring.c_str(), bufstring.length());
     outfile.close();
   }
   else if(flag_2D){
     outfile.open(outputfileName.c_str());
 
     long k = 0;
+    std::stringstream bufstream;
     for (long j = 0; j < second_bins; j++){
       for (long i = 0; i < first_bins; i++){
         double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
         double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
-        outfile << fcoord << " " << scoord << " "<< plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
+        bufstream << fcoord << " " << scoord << " "<< plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
       }
-      outfile << std::endl;
+      bufstream << std::endl;
     }
+    std::string bufstring = bufstream.str();
+    outfile.write(bufstring.c_str(), bufstring.length());
     outfile.close();
   }
   else if(flag_3D)
@@ -256,17 +262,22 @@ int main(int narg, char **args)
       outfile.open(outputfileName.c_str());
 
       for (long k = 0; k < third_bins; k++){
+        std::stringstream bufstream;
+
         for (long j = 0; j < second_bins; j++){
           for (long i = 0; i < first_bins; i++){
             double fcoord = (i + i + 1)*0.5/first_bins*(first_max-first_min)+first_min;
             double scoord = (j + j + 1)*0.5/second_bins*(second_max-second_min)+second_min;
             double tcoord = (k + k + 1)*0.5/third_bins*(third_max-third_min)+third_min;
-            outfile << fcoord << " " << scoord << " "<< tcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
+            bufstream << fcoord << " " << scoord << " "<< tcoord << " " << plotData[i+j*first_bins+k*first_bins*second_bins] << std::endl;
           }
-          outfile << std::endl;
+          bufstream << std::endl;
         }
-        outfile << std::endl;
+        bufstream << std::endl;
+        std::string bufstring = bufstream.str();
+        outfile.write(bufstring.c_str(), bufstring.length());
       }
+
       outfile.close();
     }
     else{

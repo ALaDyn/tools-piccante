@@ -147,14 +147,17 @@ void pushParticleSteps(PARTICLE *particle, GRID *grid){
     float buffer = Ptot*(rand()*1.0/RAND_MAX);
     if(buffer<=PXD)
       particle->coord[0] -= grid->step;
+
     else if(buffer<=(PXD+PXU))
       particle->coord[0] += grid->step;
+
     else if(buffer<=(PXD+PXU+PYD))
       particle->coord[1] -= grid->step;
     else if(buffer<=(PXD+PXU+PYD+PYU))
       particle->coord[1] += grid->step;
     else if(buffer<=(PXD+PXU+PYD+PYU+PZD))
       particle->coord[2] -= grid->step;
+
     else
       particle->coord[2] += grid->step;
 
@@ -197,7 +200,7 @@ void pushParticleVariSteps(PARTICLE *particle, GRID *grid){
       particle->coord[0] += length*grid->step;
     else if(buffer<=(PXD+PXU+PYD))
       particle->coord[1] -= length*grid->step;
-    else if(buffer<=(PXD+PXU+PYD-PYU))
+    else if(buffer<=(PXD+PXU+PYD+PYU))
       particle->coord[1] += length*grid->step;
     else if(buffer<=(PXD+PXU+PYD-PYU+PZD))
       particle->coord[2] -= length*grid->step;
@@ -351,6 +354,7 @@ int main(int narg, char **args){
       if(isParticleTouching(&particle,&foam, grid) ){
         foam.push_back(particle);
         grid.rMax[0] = MAX(grid.rMax[0],particle.coord[0]);
+
         break;
       }
 #endif
@@ -412,10 +416,10 @@ std::cout << " "<< std::endl;
     spheresCoords[p*4+3] = foam[p].radius;
   }
   of1.open("spheres.txt", std::ofstream::out | std::ofstream::trunc);
-  of1 << Npart << std::endl;
-  of1 << fillingFactor << std::endl;
-  of1 << grid.rMin[0] <<  " " << grid.rMin[1] <<  " " << grid.rMin[2] <<  " " << std::endl;
-  of1 << grid.rMax[0] <<  " " << grid.rMax[1] <<  " " << grid.rMax[2] <<  " " << std::endl;
+  of1 << "#  " << Npart << std::endl;
+  of1 << "#  " << fillingFactor << std::endl;
+  of1 << "#  " << grid.rMin[0] <<  " " << grid.rMin[1] <<  " " << grid.rMin[2] <<  " " << std::endl;
+  of1 << "#  " << grid.rMax[0] <<  " " << grid.rMax[1] <<  " " << grid.rMax[2] <<  " " << std::endl;
   for (int p=0; p < foam.size(); p++){
     for(int i=0; i<4; i++){
       of1 << spheresCoords[p*4+i] << " ";
