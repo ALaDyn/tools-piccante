@@ -19,7 +19,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <malloc.h>
+//#include <malloc.h>
 #include <cmath>
 #include <iomanip>
 #include <cstring>
