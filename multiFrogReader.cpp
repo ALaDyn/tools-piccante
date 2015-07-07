@@ -38,6 +38,7 @@ struct ALL_FLAGS{
     bool FLAG_xmax, FLAG_ymax, FLAG_zmax;
     double xminval, yminval, zminval;
     double xmaxval, ymaxval, zmaxval;
+    double lockValue[3];
     bool FLAG_lockr[3];
     int iminval[3];
     int imaxval[3];
@@ -472,12 +473,15 @@ void parseInputArguments(ALL_FLAGS &myFlags, int argc, char **argv){
   for (int i = 2; i < argc; i++){
     if (!std::strncmp(argv[i], "-lockx", 6)){
       myFlags.FLAG_lockr[0] = true;
+      myFlags.lockValue[0]= atof(argv[i + 1]);
     }
     if (!std::strncmp(argv[i], "-locky", 6)){
       myFlags.FLAG_lockr[1] = true;
+      myFlags.lockValue[1]= atof(argv[i + 1]);
     }
     if (!std::strncmp(argv[i], "-lockz", 6)){
       myFlags.FLAG_lockr[2] = true;
+      myFlags.lockValue[2]= atof(argv[i + 1]);
     }
 
     if (!std::strncmp(argv[i], "-xsample", 8)){
@@ -572,8 +576,9 @@ void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData
 
   for(int c=0; c<3; c++)
     if(myFlags.FLAG_lockr[c]){
-      outputData.lockIndex[c]=fileData.dataNSize[c]/2;
-      myFlags.iminval[c] = fileData.dataNSize[c]/2;
+      outputData.lockIndex[c]=findIndexMin(myFlags.lockValue[c], fileData.riCoords[c], fileData.dataNSize[c]);
+      //outputData.lockIndex[c]=fileData.dataNSize[c]/2;
+      myFlags.iminval[c] = outputData.lockIndex[c];
       myFlags.imaxval[c] = myFlags.iminval[c] + 1;
       outputData.allocN[c]=1;
     }
