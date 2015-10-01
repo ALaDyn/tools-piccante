@@ -29,8 +29,8 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 void swap_endian(float* in_f, uint64_t n);
-void swap_endian(int* in_i, int n);
-void swap_endian(double* in_d, int n);
+void swap_endian(int* in_i, uint64_t n);
+void swap_endian(double* in_d, uint64_t n);
 int is_big_endian();
 
 

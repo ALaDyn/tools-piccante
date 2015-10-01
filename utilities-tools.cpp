@@ -34,7 +34,7 @@ void swap_endian(float* in_f, uint64_t n)
     in_f[i]=x.fmio;
   }
 }
-void swap_endian(int* in_i, int n)
+void swap_endian(int* in_i, uint64_t n)
 {
   int i;
   union { int imio; float fmio; char arr[4]; }x;
@@ -52,7 +52,7 @@ void swap_endian(int* in_i, int n)
   }
 }
 
-void swap_endian(double* in_d, int n){
+void swap_endian(double* in_d, uint64_t n){
   if(is_big_endian())
     return;
   int i;
