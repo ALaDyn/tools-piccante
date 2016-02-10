@@ -346,7 +346,7 @@ int main(const int argc, const char *argv[]){
 
     long long int totPts = allocN[0] * allocN[1]* allocN[2];
     double dr[3];
-    if(!is_big_endian)
+    if(!is_big_endian())
       swap_endian(savedFields, size);
     dr[0]=xiCoords[sampling[0]+iminval[0]]-xiCoords[iminval[0]];
     dr[1]=yiCoords[sampling[1]+iminval[1]]-yiCoords[iminval[1]];
