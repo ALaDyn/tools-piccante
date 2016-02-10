@@ -614,7 +614,7 @@ void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileDat
 
   uint64_t totPts = outputData.allocN[0] * outputData.allocN[1]* outputData.allocN[2];
   double dr[3];
-  if(!is_big_endian)
+  if(!is_big_endian())
     swap_endian(outputData.savedFields, outputData.size);
   dr[0]=fileData.riCoords[0][myFlags.sampling[0]+myFlags.iminval[0]]-fileData.riCoords[0][myFlags.iminval[0]];
   dr[1]=fileData.riCoords[1][myFlags.sampling[1]+myFlags.iminval[1]]-fileData.riCoords[1][myFlags.iminval[1]];
