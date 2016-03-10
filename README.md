@@ -1,4 +1,4 @@
-tools-pic
-=========
+#tools-piccante
 
-tools for reading outputs of newC++
+
+tools for reading outputs of piccante
