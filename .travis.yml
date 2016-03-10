@@ -7,8 +7,10 @@ addons:
     packages:
     - gcc-4.8
     - g++-4.8
+    - libopenmpi-dev
+    - libboost-random-dev
 install:
-    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8" OMPI_MPICXX="g++-4.8" OMPI_MPICC="gcc-4.8"; fi
 compiler:
   - gcc
 script:
