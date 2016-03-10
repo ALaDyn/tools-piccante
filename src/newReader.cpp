@@ -445,7 +445,8 @@ int findIndexMin (double val, float* coords, int numcoords){
     if (val < coords[i])
       return (i-1);
   }
-  
+
+  return -1;
 }
 
 int findIndexMax (double val, float* coords, int numcoords){
@@ -460,6 +461,6 @@ int findIndexMax (double val, float* coords, int numcoords){
       return (i+1);
   }
 
-
+  return -1;
 }
 
