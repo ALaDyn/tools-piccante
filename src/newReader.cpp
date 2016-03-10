@@ -134,7 +134,7 @@ int main(const int argc, const char *argv[]){
 
   }
   file_bin.read((char*)&isFileBigEndian, sizeof(int));
-  doSwap = (isFileBigEndian!=is_big_endian());
+  doSwap = (isFileBigEndian != is_big_endian());
 
   file_bin.read((char*)Ncells, 3 * sizeof(int));
   if(doSwap)
@@ -276,7 +276,7 @@ int main(const int argc, const char *argv[]){
     char nomefile_campi[1024];
     long totPts = Ncells[0] * Ncells[1]* Ncells[2];
     double dx, dy, dz;
-    if(!is_big_endian)
+    if(!(is_big_endian()))
       swap_endian(fields,totPts);
     dx=xiCoords[1]-xiCoords[0];
     dy=yiCoords[1]-yiCoords[0];
