@@ -1,6 +1,6 @@
 MPICOMPILER = mpic++
 OPT = -O3 -std=c++11
-MPI_OTP = -O3 -std=c++11
+MPI_OPT = -O3 -std=c++11
 SRC_FOLDER = src
 
 FILES = newReader.cpp \
@@ -24,7 +24,7 @@ SRC = $(addprefix $(SRC_FOLDER)/, $(FILES))
 MPI_SRC = $(addprefix $(SRC_FOLDER)/, $(MPIFILES))
 DEP_SRC = $(addprefix $(SRC_FOLDER)/, $(DEPFILES))
 
-MPIEXES = $(addsuffix .exe, $(basename $(MPIFILES)))
+MPIEXES = $(addsuffix .mpi, $(basename $(MPIFILES)))
 EXES = $(addsuffix .exe, $(basename $(FILES)))
 DEPS = $(addsuffix .o, $(basename $(DEPFILES)))
 
@@ -40,26 +40,31 @@ boost : $(MPIEXES)
 
 fermi : OPT = -O3 -std=c++0x
 fermi : MPICOMPILER = mpixlcxx
-fermi : MPI_OTP = -qipa=partition=large -qarch=qp -qtune=qp -qmaxmem=-1
+fermi : MPI_OPT = -qipa=partition=large -qarch=qp -qtune=qp -qmaxmem=-1
 fermi : $(DEPS)
 fermi : $(EXES)
 fermi : $(MPIEXES)
 
-debug : OPT = -O0 -g 
-debug : MPI_OPT = -O0 -g 
+cnaf : OPT = -O3 -std=c++0x 
+cnaf : MPI_OPT = -O3 -std=c++0x 
+cnaf : $(DEPS)
+cnaf : $(EXES)
+cnaf : $(MPIEXES)
+
+debug : OPT = -O0 -g -std=c++0x 
+debug : MPI_OPT = -O0 -g -std=c++0x 
 debug : $(DEPS)
 debug : $(EXES)
 debug : $(MPIEXES)
 
-
-$(DEPS): $(DEP_SRC)
+%.o: $(SRC_FOLDER)/%.cpp
 	$(CXX) $(OPT) -c -o $@ $<
 
-$(EXES): $(SRC)
+%.exe: $(SRC_FOLDER)/%.cpp
 	$(CXX) $(OPT) -o $@ $(DEPS) $< $(LIB)
 
-$(MPIEXES): $(MPI_SRC)
-	$(MPICOMPILER) $(MPI_OTP) -o $@ $< $(LIB)
+%.mpi: $(SRC_FOLDER)/%.cpp
+	$(MPICOMPILER) $(MPI_OPT) -o $@ $< $(LIB)
 
 clean:
 	rm -f $(DEPS)

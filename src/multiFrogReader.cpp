@@ -29,9 +29,8 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #endif
 #include <cstdlib>
+#include "utilities-tools.h"
 
-void swap_endian(float* in_f, size_t n);
-void swap_endian(int* in_i, int n);
 
 struct ALL_FLAGS{
     bool FLAG_xmin, FLAG_ymin, FLAG_zmin;
@@ -84,7 +83,6 @@ void message(std::string msg);
 void errorMessage(std::string msg);
 int howManyFilesExist(std::string strippedFileName);
 int getAndCheckFileNumber(std::string strippedFileName);
-int is_big_endian();
 
 inline void drawLoadBar(uint64_t, uint64_t, uint64_t, int);
 
@@ -310,14 +308,6 @@ int main( int narg,  char **args){
 }
 
 
-int is_big_endian(){
-  union {
-      uint32_t i;
-      char c[4];
-  } bint = { 0x01020304 };
-
-  return bint.c[0] == 1;
-}
 
 inline void drawLoadBar(uint64_t i, uint64_t Ntot, uint64_t R, int sizeBar){
   if (i % (Ntot / R) != 0) return;
@@ -370,41 +360,6 @@ int findIndexMax (double val, float* coords, int numcoords){
   }
 
 
-}
-
-void swap_endian(float* in_f, size_t n)
-{
-  size_t i;
-  union {int imio; float fmio; char arr[4];}x;
-  char buff;
-  for(i=0;i<n;i++)
-  {
-    x.fmio=in_f[i];
-    buff=x.arr[0];
-    x.arr[0]=x.arr[3];
-    x.arr[3]=buff;
-    buff=x.arr[1];
-    x.arr[1]=x.arr[2];
-    x.arr[2]=buff;
-    in_f[i]=x.fmio;
-  }
-}
-void swap_endian(int* in_i, int n)
-{
-  int i;
-  union { int imio; float fmio; char arr[4]; }x;
-  char buff;
-  for (i = 0; i < n; i++)
-  {
-    x.imio = in_i[i];
-    buff = x.arr[0];
-    x.arr[0] = x.arr[3];
-    x.arr[3] = buff;
-    buff = x.arr[1];
-    x.arr[1] = x.arr[2];
-    x.arr[2] = buff;
-    in_i[i] = x.imio;
-  }
 }
 
 std::string composeFileName(std::string strippedFileName, int fileId){

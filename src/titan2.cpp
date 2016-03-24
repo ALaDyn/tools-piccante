@@ -26,6 +26,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include<iostream>
 #include<cstring>
 #include<vector>
+#include "utilities-tools.h"
 
 bool flag_swap=false;
 bool single_file_wo_suffix = false;
@@ -133,7 +134,6 @@ const int readLength = 1000000;
 double mincomponents[NUM_QUANTITIES];
 double maxcomponents[NUM_QUANTITIES];
 
-int is_big_endian();
 int main(int narg, char **args)
 {
   parallelData world;
@@ -1198,11 +1198,3 @@ void increasePlotExtremsBy(float factor){
   third_max+=factor*(third_max - third_min);
 }
 
-int is_big_endian(){
-  union {
-      int i;
-      char c[4];
-  } bint = { 0x01020304 };
-
-  return bint.c[0] == 1;
-}

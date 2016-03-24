@@ -28,44 +28,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #endif
 #include <cstdlib>
-
-void swap_endian(float* in_f, size_t n)
-{
-  size_t i;
-  union {int imio; float fmio; char arr[4];}x;
-  char buff;
-  for(i=0;i<n;i++)
-  {
-    x.fmio=in_f[i];
-    buff=x.arr[0];
-    x.arr[0]=x.arr[3];
-    x.arr[3]=buff;
-    buff=x.arr[1];
-    x.arr[1]=x.arr[2];
-    x.arr[2]=buff;
-    in_f[i]=x.fmio;
-  }
-}
-void swap_endian(int* in_i, int n)
-{
-  int i;
-  union { int imio; float fmio; char arr[4]; }x;
-  char buff;
-  for (i = 0; i < n; i++)
-  {
-    x.imio = in_i[i];
-    buff = x.arr[0];
-    x.arr[0] = x.arr[3];
-    x.arr[3] = buff;
-    buff = x.arr[1];
-    x.arr[1] = x.arr[2];
-    x.arr[2] = buff;
-    in_i[i] = x.imio;
-  }
-}
-
-
-int is_big_endian();
+#include "utilities-tools.h"
 
 inline void drawLoadBar(long, long, long, int);
 
@@ -352,15 +315,6 @@ int main(const int argc, const char *argv[]){
 
 }
 
-
-int is_big_endian(){
-  union {
-    uint32_t i;
-    char c[4];
-  } bint = { 0x01020304 };
-
-  return bint.c[0] == 1;
-}
 
 inline void drawLoadBar(long i, long Ntot, long R, int sizeBar){
   if (i % (Ntot / R) != 0) return;
