@@ -14,6 +14,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
+#define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 #include <iostream>
 #include <fstream>
@@ -57,7 +58,6 @@ int main(const int argc, const char *argv[]){
   int Ncomp;
   long size;
   float *fields;
-  int* integer_or_halfinteger;
   std::ostringstream nomefile_bin, nomefile_txt;
   nomefile_bin << std::string(argv[1]);
   nomefile_txt << std::string(argv[1]) << ".txt";
