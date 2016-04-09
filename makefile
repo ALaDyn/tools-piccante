@@ -2,7 +2,7 @@ MPICOMPILER = mpic++
 OPT = -O3 -std=c++11
 MPI_OPT = -O3 -std=c++11
 SRC_FOLDER = src
-
+LIB = 
 FILES = newReader.cpp \
 WangularSpectrum.cpp \
 WenergySpectrum.cpp \
