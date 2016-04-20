@@ -238,11 +238,12 @@ int main(const int argc, const char *argv[]){
 
     bool flagRead=true;
     for (int c = 0; c < 3; c++){
-      if(FLAG_lockr[c])
+      if(FLAG_lockr[c]){
         if( locOrigin[c]<=lockIndex[c]&& ((locOrigin[c]+locNcells[c])>lockIndex[c]) )
           flagRead = flagRead && true;
         else
           flagRead = false;
+      }
     }
 
     if(flagRead){
@@ -347,11 +348,12 @@ int findIndexMin (double val, float* coords, int numcoords){
   if (val <= coords[0])
     return 0;
 
+  int maxIndex=numcoords-1;
   for (int i = 1; i < numcoords; i++){
     if (val < coords[i])
       return (i-1);
   }
-
+  return maxIndex;
 }
 
 int findIndexMax (double val, float* coords, int numcoords){
@@ -361,11 +363,12 @@ int findIndexMax (double val, float* coords, int numcoords){
   if (val >= coords[numcoords-1])
     return (numcoords-1);
 
+  int minIndex = 0;
   for (int i = (numcoords-1); i >= 0; i--){
     if (val > coords[i])
       return (i+1);
   }
-
+  return minIndex;
 
 }
 

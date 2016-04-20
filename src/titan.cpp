@@ -494,7 +494,8 @@ void parseArgs(int nNumberofArgs, char* pszArgs[]){
         filter new_filter;
 
         char split_char = ':';
-        std::istringstream split(std::string(pszArgs[i+1]));
+        std::string buffer=std::string(pszArgs[i+1]);
+        std::istringstream split(buffer);
         std::vector<std::string> token;
         for (std::string each; std::getline(split, each, split_char); token.push_back(each));
 
