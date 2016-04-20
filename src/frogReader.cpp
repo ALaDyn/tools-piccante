@@ -19,6 +19,7 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 //#include <malloc.h>
 #include <cmath>
 #include <iomanip>
@@ -319,14 +320,20 @@ int main(const int argc, const char *argv[]){
       if(allocN[c]==1)
         dr[c]=0;
     }
-    std::string compNames[Ncomp];
+
+    std::vector<std::string> compNames;
+    //std::string compNames[Ncomp];
     if(Ncomp==1){
-      compNames[0] = "scalar";
+      std::string nome = "scalar";
+      compNames.push_back(nome);
     }
     else if(Ncomp==3){
-      compNames[0] = "Vx";
-      compNames[1] = "Vy";
-      compNames[2] = "Vz";
+      std::string nomex = "Vx";
+      compNames.push_back(nomex);
+      std::string nomey = "Vy";
+      compNames.push_back(nomey);
+      std::string nomez = "Vz";
+      compNames.push_back(nomez);
     }
 
     outputfileName << std::string(argv[1]) << ".vtk";
