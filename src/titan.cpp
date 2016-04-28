@@ -169,14 +169,14 @@ int main(int narg, char **args)
     }
     std::cout << "Plot limits will be increased by a 5%" << std::endl;
 
-    first_min-=0.05*first_min;
-    first_max+=0.05*first_max;
+    first_min-=0.05*(first_max - first_min);
+    first_max+=0.05*(first_max - first_min);
 
-    second_min-=0.05*second_min;
-    second_max+=0.05*second_max;
+    second_min-=0.05*(second_max - second_min);
+    second_max+=0.05*(second_max - second_min);
 
-    third_min-=0.05*third_min;
-    third_max+=0.05*third_max;
+    third_min-=0.05*(third_max - third_min);
+    third_max+=0.05*(third_max - third_min);
 
 
   }
