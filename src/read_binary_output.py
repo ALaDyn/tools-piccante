@@ -7,7 +7,6 @@ __credits__ = ["whomever", "you", "want"]
 __license__ = "GPL"
 __version__ = "3.0"
 __maintainer__ = "Alberto Marocchino"
-__email__ = "albz_uk@gmail.com"
 __status__ = "Beta"
 # Date:			2014-05-29
 # Purpose:      reads binary frm output
@@ -25,7 +24,8 @@ import numpy as np
 # from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 ### --- ###
 
-
+print 'Number of arguments:', len(sys.argv), 'arguments.'
+print 'Argument List:', str(sys.argv)
 path     = os.getcwd()
 f        = open(os.path.join(path,'E_FIELD_000.000.bin'),'rb')
 
@@ -42,6 +42,7 @@ Npx = struct.unpack('i', f.read(4))[0]
 Npy = struct.unpack('i', f.read(4))[0]
 Npz = struct.unpack('i', f.read(4))[0]
 
+Nproc = Npx*Npy*Npz
 #- field components -#
 Nc = struct.unpack('i', f.read(4))[0]
 
@@ -61,8 +62,8 @@ for i in range(0,Nz):
 	z[i] = struct.unpack('f', f.read(4))[0]
 
 #- loop on processors -#
-F = np.zeros((Nx,Ny,Nz,Nc))
-for nprocessor in range(0,Npx*Npy*Npz):
+F = np.zeros((Nz,Ny,Nx,Nc))
+for nprocessor in range(0,Nproc):
 		#-processor dims -#
 		i0  = struct.unpack('i', f.read(4))[0]
 		j0  = struct.unpack('i', f.read(4))[0]
@@ -71,16 +72,17 @@ for nprocessor in range(0,Npx*Npy*Npz):
 		lj0 = struct.unpack('i', f.read(4))[0]
 		lk0 = struct.unpack('i', f.read(4))[0]
 		print '>>> ',i0,j0,k0,li0,lj0,lk0
-
-		for k in range(k0,k0+lk0):
-			for j in range(j0,j0+lj0):
-				for i in range(i0,i0+li0):
+        locFields = np.zeros((li0,lj0,lk0,Nc))
+        NN=li0*lj0*lk0*Nc
+        array=numpy.array(struct.unpack('f'*NN, f.read(4*NN))).reshape(lk0,lj0,li0,Nc)
+        
+		for k in range(0,lk0):
+			for j in range(0,lj0):
+				for i in range(0,li0):
 					for c in range(0,Nc):
-						F[i,j,k,c] = struct.unpack('f', f.read(4))[0]
-# 					F1[i,j,k] = struct.unpack('f', f.read(4))[0]
-# 					F2[i,j,k] = struct.unpack('f', f.read(4))[0]
-
-np.savetxt( 'F0.dat' ,F[:,:,0,1],fmt='%15.14e')			
+						F[k+k0,j+j0,i+i0,c] = array[k,j,i,c]
+                        
+np.savetxt( 'F0.dat' ,F[0,:,:,1],fmt='%15.14e')			
 
 f.close()
 print path
