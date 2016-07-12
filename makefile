@@ -13,6 +13,7 @@ frogReader.cpp \
 titan.cpp \
 titan2.cpp \
 clusters.cpp \
+randomballs.cpp \
 multiFrogReader.cpp
 
 MPIFILES = MPItitan.cpp \

@@ -14,6 +14,10 @@ You should have received a copy of the GNU General Public License
 along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
+#define _USE_MATH_DEFINES
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE 500
+#endif
 
 #include<mpi.h>
 #include<cstdio>
