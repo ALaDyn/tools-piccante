@@ -253,7 +253,25 @@ class field_analysis:
              ky = j*self.dky
              for i in range(-self.Nx/2,self.Nx/2):
                  kx = i*self.dkx
-                 f1.write("%e %e %e\n" % (kx, ky, np.real(onetimetrasf[i,j])))
+                 f1.write("%e %e %e\n" % (kx, ky, np.real(onetimetrasf[j,i])))
+         f1.close()
+         
+    def oneTime(self,time,zposition,comp):
+         itime = int((time-self.tmin)/self.dt)
+         if itime>=self.Nt:
+             itime = self.Nt-1
+         selected=itime*self.dt + self.tmin
+         
+         print ("selected itime = %d  time = %4.3f" %(itime,selected))
+         name = ("%s-time%3.3f.txt"% (self.basename,selected))
+         
+         f1=open(name, 'w')
+         
+         for j in range(-self.Ny/2,self.Ny/2):
+             y = j*self.dky
+             for i in range(-self.Nx/2,self.Nx/2):
+                 kx = i*self.dkx
+                 f1.write("%e %e %e\n" % (x[i], y[j], self.alldata[itime,zposition,j,i,comp] ))
          f1.close()
          
     def avg_y(self):
@@ -274,17 +292,18 @@ def run():
     path     = os.getcwd()
     #f        = open(os.path.join(path,'E_FIELD_000.000.bin.000'),'rb')
     component = 0
-    basetime = 100
+    basetime = 200
     deltaT = 10
     sub = 5
     endtime = basetime + deltaT
-    #myname = "B_FIELD_"
-    myname = "DENS_eleBulk_"
+    myname = "E_FIELD_"
+    #myname = "DENS_eleBulk_"
     myanalysis = field_analysis(basetime, endtime,substeps=sub, base=myname, end=".bin.000")
     myanalysis.collect_data()
     myanalysis.do_fft(zposition=0,comp=component)
     myanalysis.select_omega(freq=1.01)
     myanalysis.select_omega(freq=2.01)
+    myanalysis.oneTime(basetime,zposition=0,comp=component)
     
     myanalysis.avg_y()
     myanalysis.kx_ky_oneTime(basetime,zposition=0,comp=component)
