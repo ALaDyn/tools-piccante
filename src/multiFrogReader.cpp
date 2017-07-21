@@ -45,6 +45,7 @@ struct ALL_FLAGS{
     int sampling[3];
     bool vtkOutput;
     bool doSwap;
+    bool doDump;
 
     ALL_FLAGS(){
       FLAG_xmin = FLAG_ymin = FLAG_zmin = false;
@@ -58,15 +59,15 @@ struct ALL_FLAGS{
       imaxval[0] = imaxval[1] = imaxval[2] = 0;
       sampling[0] = sampling[1] = sampling[2] = 1;
       vtkOutput = false;
-
+      doDump = false;
     }
 };
 struct OUTPUT_DATA{
     int lockIndex[3];
     int allocN[3];
     uint64_t size;
-    uint64_t NNN;
     float *savedFields;
+    float *riCoords[3];
 };
 
 struct FILE_DATA{
@@ -100,6 +101,7 @@ void readFromFile(std::ifstream &file_bin, float *buffer, int N, bool doSwap);
 
 
 void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileData, std::string outputfileName);
+void printBINFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileData, std::string baseName);
 
 
 int main( int narg,  char **args){
@@ -264,6 +266,10 @@ int main( int narg,  char **args){
     printVTKFile(outputData, myFlags, fileData, outputfileName.str());
 
 
+  }
+  else if(myFlags.doDump){
+    printf("DUMP enabled\n");
+    printBINFile(outputData, myFlags, fileData, std::string(args[1]));
   }
   else{
     outputfileName << std::string(args[1]) << ".txt";
@@ -485,6 +491,9 @@ void parseInputArguments(ALL_FLAGS &myFlags, int argc, char **argv){
     if (!std::strncmp(argv[i], "-vtk", 3)){
       myFlags.vtkOutput = true;
     }
+    if (!std::strncmp(argv[i], "-dump", 5)){
+      myFlags.doDump = true;
+    }
 
   }
 }
@@ -499,6 +508,7 @@ void writeUsageHelper(){
   printf("       -xmin $XMIN (to set xmin)\n");
   printf("       -xmax $XMAX (to set xmax)\n");
   printf("       -vtk        (to get a vtk output file)\n");
+  printf("       -dump       (to get a newBinfile for each component)\n");
 }
 
 void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData){
@@ -541,6 +551,17 @@ void checkFlags(ALL_FLAGS &myFlags, FILE_DATA &fileData, OUTPUT_DATA &outputData
       myFlags.imaxval[c] = myFlags.iminval[c] + 1;
       outputData.allocN[c]=1;
     }
+
+  uint64_t global;
+  for(int c=0; c<3; c++){
+    outputData.riCoords[c] = new float[outputData.allocN[c]];
+    for (uint64_t ii = 0; ii <outputData.allocN[c] ; ii++){
+      global = ii*myFlags.sampling[c] + myFlags.iminval[c];
+      outputData.riCoords[c][ii] = fileData.riCoords[c][global];
+    }
+  }
+
+
 }
 
 void updateFileIfEOF(std::ifstream &file_bin, int &fileId, std::string strippedName){
@@ -569,6 +590,41 @@ void readFromFile(std::ifstream &file_bin, float *buffer, int N, bool doSwap){
     swap_endian( buffer,N);
 }
 
+void printBINFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileData, std::string baseName){
+
+  for (uint64_t c = 0; c < fileData.Ncomp; c++){
+    std::ostringstream outputfileName;
+    outputfileName << baseName << "_" << c << ".newbin";
+    std::ofstream file_bin;
+    file_bin.open(outputfileName.str().c_str(), std::ios::binary | std::ios::out);
+
+    int isBigEndian = is_big_endian();
+    file_bin.write((char*)&isBigEndian,          sizeof(int));
+    file_bin.write((char*)outputData.allocN, 3 * sizeof(int));
+    int rNproc[3]={1,1,1};
+    file_bin.write((char*)rNproc,            3 * sizeof(int));
+    int Ncomp = 1;
+    file_bin.write((char*)&Ncomp,                sizeof(int));
+
+    for (int cc = 0; cc < 3; cc++){
+      file_bin.write((char*)outputData.riCoords[cc], outputData.allocN[cc] * sizeof(float));
+    }
+
+    int locOrigin[3]={0,0,0};
+    file_bin.write((char*)locOrigin, 3 * sizeof(int));
+    int locNcells[3]={outputData.allocN[0],outputData.allocN[1],outputData.allocN[2]};
+    file_bin.write((char*)locNcells, 3 * sizeof(int));
+
+
+//    uint64_t locSize  = ((uint64_t)outputData.allocN[0])*((uint64_t)outputData.allocN[1])*((uint64_t)outputData.allocN[2]);
+    //file_bin.write((char*)(&outputData.savedFields[locSize*c]), outputData.size * sizeof(float));
+  //  file_bin.write((char*)(outputData.savedFields + locSize*c), locSize * sizeof(float));
+
+    uint64_t totPts = outputData.allocN[0] * outputData.allocN[1]* outputData.allocN[2];
+    file_bin.write((char*)(&outputData.savedFields[c*totPts]), sizeof(float)*totPts);
+    file_bin.close();
+  }
+}
 void printVTKFile(OUTPUT_DATA &outputData, ALL_FLAGS &myFlags, FILE_DATA fileData, std::string outputfileName){
 
   uint64_t totPts = outputData.allocN[0] * outputData.allocN[1]* outputData.allocN[2];
