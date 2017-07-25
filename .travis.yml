@@ -1,17 +1,41 @@
+language: cpp
+
+os:
+  - linux
+  - osx
+
+dist: trusty
 sudo: false
-language: c++
+
+compiler: 
+  - gcc
+  - clang
+
 addons:
   apt:
-    sources:
-    - ubuntu-toolchain-r-test
     packages:
-    - gcc-4.8
-    - g++-4.8
     - libopenmpi-dev
-    - libboost-random-dev
+
+matrix:
+    exclude:
+    - os: osx
+      compiler: gcc
+    - os: linux
+      compiler: clang
+
+before_install:
+  # OSX Setup 
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew update                                                                               ;fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew tap homebrew/science                                                                 ;fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install open-mpi                                                                     ;fi
+
 install:
-    - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8" OMPI_MPICXX="g++-4.8" OMPI_MPICC="gcc-4.8"; fi
-compiler:
-  - gcc
+  - export OMPI_MPICXX=$CXX
+  - export OMPI_CXX=$CXX
+  - export OMPI_MPICC=$CC
+  - export OMPI_CC=$CC
+
+
 script:
-  - make all
+  - mkdir build && cd build && cmake .. && cmake --build . --target install
+
