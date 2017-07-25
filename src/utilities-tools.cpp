@@ -14,7 +14,6 @@ along with tools-pic.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-
 #include "utilities-tools.h"
 
 void swap_endian(float* in_f, uint64_t n)
