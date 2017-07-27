@@ -19,10 +19,18 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 #define _XOPEN_SOURCE 500
 #endif
 
-#include<cstdio>
-#include<cstdlib>
-#include<cmath>
-#include<cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <cmath>
+#include <string>
+#include <sstream>
+#include <istream>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <cstring>
+#include <vector>
+#include <random>
 
 #if defined(CINECA)
 #include <inttypes.h>
@@ -30,10 +38,20 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #endif
 
-#if (defined _WIN32) || (defined _WIN64)
+#if defined (_MSC_VER)
 #include<wchar.h>
 #define fseeko _fseeki64
 #define ftello _ftelli64
+#endif
+
+#if defined (__MINGW32__)
+#define fseeko fseeko64
+#define ftello ftello64
+#endif
+
+#if defined (__CYGWIN__)
+#define fseeko fseek
+#define ftello ftell
 #endif
 
 using namespace std;

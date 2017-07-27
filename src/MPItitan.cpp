@@ -15,22 +15,8 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 500
-#endif
-
-#include<mpi.h>
-#include<cstdio>
-#include<cstdlib>
-#include<cmath>
-#include<string>
-#include<sstream>
-#include<istream>
-#include<fstream>
-#include<iomanip>
-#include<iostream>
-#include<cstring>
-#include<vector>
+#include <mpi.h>
+#include "Wheader.h"
 
 bool flag_swap=false;
 

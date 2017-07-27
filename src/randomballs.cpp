@@ -15,18 +15,6 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 500
-#endif
-
-#include <cstdlib>
-#include <ctime>
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <string.h>
-#include <cstdint>
-#include <cmath>
 #include "utilities-tools.h"
 
 #define SWAPENDIANESS false

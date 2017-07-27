@@ -18,16 +18,7 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef UTILITIESTOOLS_H
 #define UTILITIESTOOLS_H
 
-#include<cstdio>
-#include<cstdlib>
-#include<cmath>
-#include<cstring>
-
-#if defined(CINECA)
-#include <inttypes.h>
-#else
-#include <cstdint>
-#endif
+#include "Wheader.h"
 
 void swap_endian(float* in_f, uint64_t n);
 void swap_endian(int* in_i, uint64_t n);

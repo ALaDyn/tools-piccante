@@ -15,31 +15,10 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 500
-#endif
-
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-//#include <malloc.h>
-#include <cmath>
-#include <iomanip>
-#include <cstring>
-#include <vector>
 #include "utilities-tools.h"
-#include <random>
-//#include <boost/random/mersenne_twister.hpp>
-//#include <boost/random/normal_distribution.hpp>
-//#include <boost/random/variate_generator.hpp>
+
 #define _DIMENSIONS 3
 
-//typedef boost::uniform_real<> UniformRealDistribution;
-//typedef boost::mt19937 MTGenerator;
-//typedef boost::variate_generator<MTGenerator&,UniformRealDistribution> Generator;
-
-#define MAX(x,y)	((x)>(y)?(x):(y))
 #define PRINT_FREQUENCY 100
 
 #define Z_MIN -3

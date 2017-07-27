@@ -15,17 +15,9 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-#include <cstdlib>
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <string.h>
-#include <cstdint>
-#include <cmath>
+#include "utilities-tools.h"
 
 #define SWAPENDIANESS true
-
-#define MAX(A,B) (A>B)?(A):(B)
 
 #define XCELLS 250
 #define XCUT 160

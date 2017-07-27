@@ -15,22 +15,7 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-#include <cstdio>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <cmath>
-#include <iomanip>
-#include <cstring>
-#include <string>
-#if defined(CINECA)
-#include <inttypes.h>
-#else
-#include <cstdint>
-#endif
-#include <cstdlib>
 #include "utilities-tools.h"
-
 
 inline void drawLoadBar(long, long, long, int);
 
