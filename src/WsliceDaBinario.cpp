@@ -38,7 +38,7 @@ int main(int narg, char **args)
 	Dfloat XMIN, XMAX, YMIN, YMAX, DX, DY, mx, my;
 	Dfloat **MATRIX, **MATRIX2;
 	int NX = 600, NY = 600, ii, jj, n;
-	int Xcomp = -1, Ycomp = -1, Zcomp = -1, Tcomp = -1; //componenti di cui si fa la proiezione
+	int Xcomp = -1, Ycomp = -1, Zcomp = -1, Tcomp = -1; // componenti di cui si fa la proiezione
 	Dfloat EXTREMS[6][2];
 	size_t N, QUANTI;
 	//	int index;
@@ -373,7 +373,7 @@ int main(int narg, char **args)
 	N = (size_t)ftello(f);
 	rewind(f);
 	QUANTI = (N / sizeof(Dfloat));
-	NP_TOT = (int)(QUANTI / COMPONENTI);
+	NP_TOT = (int)(QUANTI / NUM_COMPONENTS);
 	printf("Il file contiene %i particelle \n", NP_TOT);
 	fflush(stdout);
 
@@ -384,8 +384,8 @@ int main(int narg, char **args)
 	printf("\t una lettura di %i particelle\n", NP_RESTO);
 	fflush(stdout);
 
-	particelle = (Dfloat*)malloc(sizeof(Dfloat)*LIMITE*COMPONENTI);
-	QUANTI = LIMITE*COMPONENTI;
+	particelle = (Dfloat*)malloc(sizeof(Dfloat)*LIMITE*NUM_COMPONENTS);
+	QUANTI = LIMITE*NUM_COMPONENTS;
 
 	XMIN = (Dfloat) 1e20;
 	XMAX = (Dfloat)-1e20;
@@ -402,15 +402,15 @@ int main(int narg, char **args)
 			printf("inizio lettura numero %i\n", il);
 			fflush(stdout);
 			nptot = LIMITE;   //HO SETTATO nptot=LIMITE!!!!!
-			QUANTI = nptot*COMPONENTI;
+			QUANTI = nptot*NUM_COMPONENTS;
 			fread(particelle, sizeof(Dfloat), QUANTI, f);
 			for (n = 0; n < nptot; n++)
 			{
-				for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+				for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 				ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 				theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 				ptr[THETA] = theta;
-				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 				ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 				ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -427,15 +427,15 @@ int main(int narg, char **args)
 		fflush(stdout);
 
 		nptot = NP_RESTO;
-		QUANTI = nptot*COMPONENTI;
+		QUANTI = nptot*NUM_COMPONENTS;
 		fread(particelle, sizeof(Dfloat), QUANTI, f);
 		for (n = 0; n < nptot; n++)
 		{
-			for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+			for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 			ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 			theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 			ptr[THETA] = theta;
-			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 			ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 			ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -482,18 +482,18 @@ int main(int narg, char **args)
 			fflush(stdout);
 
 			nptot = LIMITE;   //HO SETTATO nptot=LIMITE!!!!!
-			QUANTI = nptot*COMPONENTI;
+			QUANTI = nptot*NUM_COMPONENTS;
 			fread(particelle, sizeof(Dfloat), QUANTI, f);
 
 			printf("ho finito la lettura numero %i, inizio calcoli\n", il);
 			fflush(stdout);
 			for (n = 0; n < nptot; n++)
 			{
-				for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+				for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 				ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 				theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 				ptr[THETA] = theta;
-				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 				ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 				ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -517,16 +517,16 @@ int main(int narg, char **args)
 		printf("inizio lettura del RESTO\n");
 		fflush(stdout);
 		nptot = NP_RESTO;
-		QUANTI = nptot*COMPONENTI;
+		QUANTI = nptot*NUM_COMPONENTS;
 		fread(particelle, sizeof(Dfloat), QUANTI, f);
 
 		for (n = 0; n < nptot; n++)
 		{
-			for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+			for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 			ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 			theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 			ptr[THETA] = theta;
-			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 			ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 			ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -558,18 +558,18 @@ int main(int narg, char **args)
 			printf("inizio lettura numero %i\n", il);
 			fflush(stdout);
 			nptot = LIMITE;   //HO SETTATO nptot=LIMITE!!!!!
-			QUANTI = nptot*COMPONENTI;
+			QUANTI = nptot*NUM_COMPONENTS;
 			fread(particelle, sizeof(Dfloat), QUANTI, f);
 			printf("ho finito la lettura numero %i, inizio calcoli\n", il);
 			fflush(stdout);
 
 			for (n = 0; n < nptot; n++)
 			{
-				for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+				for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 				ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 				theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 				ptr[THETA] = theta;
-				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 				ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 				ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -592,16 +592,16 @@ int main(int narg, char **args)
 		printf("inizio lettura del RESTO\n");
 		fflush(stdout);
 		nptot = NP_RESTO;
-		QUANTI = nptot*COMPONENTI;
+		QUANTI = nptot*NUM_COMPONENTS;
 		fread(particelle, sizeof(Dfloat), QUANTI, f);
 
 		for (n = 0; n < nptot; n++)
 		{
-			for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+			for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 			ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 			theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 			ptr[THETA] = theta;
-			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 			ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 			ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -634,18 +634,18 @@ int main(int narg, char **args)
 			fflush(stdout);
 
 			nptot = LIMITE;   //HO SETTATO nptot=LIMITE!!!!!
-			QUANTI = nptot*COMPONENTI;
+			QUANTI = nptot*NUM_COMPONENTS;
 			fread(particelle, sizeof(Dfloat), QUANTI, f);
 
 			printf("ho finito la lettura numero %i, inizio calcoli\n", il);
 			fflush(stdout);
 			for (n = 0; n < nptot; n++)
 			{
-				for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+				for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 				ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 				theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 				ptr[THETA] = theta;
-				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+				ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 				ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 				ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 
@@ -669,16 +669,16 @@ int main(int narg, char **args)
 		printf("inizio lettura del RESTO\n");
 		fflush(stdout);
 		nptot = NP_RESTO;
-		QUANTI = nptot*COMPONENTI;
+		QUANTI = nptot*NUM_COMPONENTS;
 		fread(particelle, sizeof(Dfloat), QUANTI, f);
 
 		for (n = 0; n < nptot; n++)
 		{
-			for (i = 0; i < COMPONENTI; i++) ptr[i] = particelle[n*COMPONENTI + i];
+			for (i = 0; i < NUM_COMPONENTS; i++) ptr[i] = particelle[n*NUM_COMPONENTS + i];
 			ptr[GAMMA1] = (Dfloat)(sqrt(1. + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1.);
 			theta = (Dfloat)(atan2(sqrt(ptr[4] * ptr[4] + ptr[5] * ptr[5]), ptr[3]) * 180. / M_PI);
 			ptr[THETA] = theta;
-			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * P_MASS);
+			ptr[ENERGIA] = (Dfloat)(ptr[GAMMA1] * m_proton_mev);
 			ptr[VX] = (Dfloat)(ptr[3] / (ptr[GAMMA1] + 1.));
 			ptr[VZ] = (Dfloat)(ptr[5] / (ptr[GAMMA1] + 1.));
 

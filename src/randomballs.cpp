@@ -19,8 +19,6 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 #define SWAPENDIANESS false
 
-#define MAX(A,B) (A>B)?(A):(B)
-
 const double XSIZE = 20;
 const double YSIZE = 20;
 const double RADIUS = 0.025;

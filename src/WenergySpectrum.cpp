@@ -24,7 +24,7 @@ int main(int narg, char **args)
   int FLAG_weight=0;
   double gamma, E, m, angle, sel_angle = 180;
     double *bin, Emin, Emax, dE, norm, weight = 1, myweight;
-	Dfloat ptr[COMPONENTI];
+	Dfloat ptr[NUM_COMPONENTS];
 	FILE *f = fopen(args[1], "r");
 	FILE *h;
 	char nome[200];
@@ -73,7 +73,7 @@ int main(int narg, char **args)
 		m = m_electron;
 	while (1)
 	{
-		fread(ptr, sizeof(Dfloat), COMPONENTI, f);
+		fread(ptr, sizeof(Dfloat), NUM_COMPONENTS, f);
 		//fscanf(f, "%lf %lf", &angle, &gamma);
 		if (feof(f)) break;
 		gamma = sqrt(1 + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1;
@@ -81,7 +81,7 @@ int main(int narg, char **args)
         myweight = ptr[6];
         //angle = atan2(sqrt(ptr[4]*ptr[4] + ptr[5]*ptr[5]), ptr[3]) * 180 / M_PI;
         count++;
-		E = gamma*m*c*c*J2MeV;
+		E = gamma*m*speed_of_light*speed_of_light*J2MeV;
         if(FLAG_weight)
             myweight=weight;
 		if (E >= Emin && E < Emax && fabs(angle) < sel_angle)

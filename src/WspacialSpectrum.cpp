@@ -23,7 +23,7 @@ int main(int narg, char **args)
   int k, n, i, FLAG_number = 0, FLAG_log = 0, count = 0, coord;
   double gamma, gammamin, E, m, angle, anglemin, anglemax;
   double *bin, rMin, rMax, deltaR, norm, weight = 1;
-  Dfloat ptr[COMPONENTI];
+  Dfloat ptr[NUM_COMPONENTS];
   FILE *f = fopen(args[1], "r");
   FILE *h;
   char nome[200];
@@ -66,7 +66,7 @@ int main(int narg, char **args)
 
   while (1)
   {
-    fread(ptr, sizeof(Dfloat), COMPONENTI, f);
+    fread(ptr, sizeof(Dfloat), NUM_COMPONENTS, f);
     //fscanf(f, "%lf %lf", &angle, &gamma);
     if (feof(f)) break;
     gamma = sqrt(1 + ptr[3] * ptr[3] + ptr[4] * ptr[4] + ptr[5] * ptr[5]) - 1;

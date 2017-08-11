@@ -17,7 +17,6 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "utilities-tools.h"
 
-
 inline void drawLoadBar(long, long, long, int);
 
 int findIndexMin (double val, float* coords, int numcoords);

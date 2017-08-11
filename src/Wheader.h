@@ -15,9 +15,9 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 
 *******************************************************************************/
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE 500
-#endif
+//#ifndef _XOPEN_SOURCE
+//#define _XOPEN_SOURCE 500
+//#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -25,9 +25,9 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include <sstream>
 #include <istream>
+#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
 #include <cstring>
 #include <vector>
 #include <random>
@@ -39,7 +39,7 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 #if defined (_MSC_VER)
-#include<wchar.h>
+#include <wchar.h>
 #define fseeko _fseeki64
 #define ftello _ftelli64
 #endif
@@ -57,23 +57,29 @@ along with tools_piccante.  If not, see <http://www.gnu.org/licenses/>.
 using namespace std;
 
 
-#define Dfloat		float
+#define Dfloat                      float
 
-#define MAX(x,y)	((x)>(y)?(x):(y))
-#define MIN(x,y)	((x)<(y)?(x):(y))
-#define P_MASS		938.272
-#define THETA		7
-#define GAMMA1		8
-#define ENERGIA		9
-#define VX			10
-#define VZ			11
-#define TRUE		1
-#define FALSE		0
-#define COMPONENTI	7				// colonne da leggere
-#define DIMENSIONI	12				// dimensioni lette piu' theta, gamma e energia
-#define m_electron	9.1095e-31      // electron mass
-#define m_proton	1.6726231e-27   // proton mass
-#define c			299792458
-#define J2MeV		(1e-6/1.60218e-19)
+#define MAX(x,y)                    ((x)>(y)?(x):(y))
+#define MIN(x,y)                    ((x)<(y)?(x):(y))
+#define THETA                       7
+#define GAMMA1                      8
+#define ENERGIA                     9
+#define VX                          10
+#define VZ                          11
+#define TRUE                        1
+#define FALSE                       0
+//#define COMPONENTI                7               // colonne da leggere
+#define NUM_COMPONENTS              7
+#define NUM_QUANTITIES              10
+#define VERY_BIG_POS_NUM            +1.0e30
+#define VERY_BIG_NEG_NUM            -1.0e30
+#define INCREASE_PLOTEXTREMS_FACTOR 0.05
+#define DIMENSIONI                  12              // dimensioni lette piu' theta, gamma e energia
+#define m_electron                  9.1095e-31      // electron mass
+#define m_proton                    1.6726231e-27   // proton mass
+//#define P_MASS                    938.272
+#define m_proton_mev                938.272
+#define speed_of_light              299792458
+#define J2MeV                       (1e-6/1.60218e-19)
 
 
