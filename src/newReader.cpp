@@ -43,6 +43,11 @@ int main(const int argc, const char *argv[]){
   int Ncomp;
   long size;
   float *fields;
+  std::cout << "\nWelcome to the new reader" << std::endl;
+  if (argc < 2){
+    printf("USAGE: %s input_file (options: -cutx $value -integratex) \n", argv[0]);
+    exit(-1);
+  }
   std::ostringstream nomefile_bin, nomefile_txt;
   nomefile_bin << std::string(argv[1]);
   nomefile_txt << std::string(argv[1]) << ".txt";
@@ -50,11 +55,7 @@ int main(const int argc, const char *argv[]){
   std::ofstream file_txt;
   file_bin.open(nomefile_bin.str().c_str(), std::ios::binary | std::ios::in);
   file_txt.open(nomefile_txt.str().c_str());
-  std::cout << "\nWelcome to the new reader" << std::endl;
   std::cout << "I will read the file: " << nomefile_bin.str() << std::endl;
-  if (argc < 1){
-    printf("USAGE: reader input_file (options: -cutx $value -integratex) \n");
-  }
 
   if (file_bin.fail()){
     std::cout << "Input file non trovato" << std::endl;
