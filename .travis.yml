@@ -26,6 +26,8 @@ matrix:
 before_install:
   # OSX Setup 
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew update                                                                               ;fi
+  # work-around a problem in XCode 8.3 image
+  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew cask uninstall oclint                                                                ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew tap homebrew/science                                                                 ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install open-mpi                                                                     ;fi
 
