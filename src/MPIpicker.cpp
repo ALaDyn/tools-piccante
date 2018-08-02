@@ -79,7 +79,7 @@ void increasePlotExtremsBy(float factor);
 
 void read_next_chunk(MPI_File myFile, long long numreader, std::string outFileName, parallelData comunicatore);
 
-const int readLength = 1000000;
+const int readLength = 10000000;
 
 double mincomponents[NUM_QUANTITIES];
 double maxcomponents[NUM_QUANTITIES];
@@ -122,7 +122,9 @@ int main(int narg, char **args)
 
     disp = findDispForSetView(fileGroup,particlesToRead);
 
-    maxReadings = findMaxNumberOfReadings(fileGroup,particlesToRead);
+    int maxReadingsFile = findMaxNumberOfReadings(fileGroup,particlesToRead);
+
+    MPI_Allreduce(&maxReadingsFile, &maxReadings, 1, MPI_INT, MPI_MAX, world.comm);
 
     delete[] particlesToRead;
   }
@@ -134,13 +136,17 @@ int main(int narg, char **args)
 
 
 
+
+
   for (int i = 0; i < readings; i++){
     read_next_chunk(theFile,readLength, outputfileName, world);
   }
-  read_next_chunk(theFile, reminder, outputfileName, world);
   for (int i = 0; i < maxReadings-readings; i++){
-    read_next_chunk(theFile,readLength, outputfileName, world);
+    read_next_chunk(theFile, 0, outputfileName, world);
   }
+
+
+  read_next_chunk(theFile, reminder, outputfileName, world);
 
 
   MPI_File_close(&theFile);
@@ -397,8 +403,8 @@ void read_next_chunk(MPI_File myFile, long long numreader, std::string outFileNa
     numreader = 0;
   MPI_File_read_all(myFile, buffer, numreader*NUM_COMPONENTS, MPI_FLOAT, MPI_STATUS_IGNORE);
 
-  if(numreader == 0)
-    return;
+  //  if(numreader == 0)
+  //  return;
 
   swap_endian_float_array(buffer,NUM_COMPONENTS*numreader);
 
