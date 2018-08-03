@@ -7,7 +7,7 @@ os:
 dist: trusty
 sudo: false
 
-compiler: 
+compiler:
   - gcc
   - clang
 
@@ -24,11 +24,9 @@ matrix:
       compiler: clang
 
 before_install:
-  # OSX Setup 
+  # OSX Setup
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew update                                                                               ;fi
-  # work-around a problem in XCode 8.3 image
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew cask uninstall oclint                                                                ;fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew tap homebrew/science                                                                 ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install open-mpi                                                                     ;fi
 
 install:
@@ -40,4 +38,3 @@ install:
 
 script:
   - mkdir build && cd build && cmake .. && cmake --build . --target install
-
