@@ -26,7 +26,6 @@ matrix:
 before_install:
   # OSX Setup
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew update                                                                               ;fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew cask uninstall oclint                                                                ;fi
   - if [[ "$TRAVIS_OS_NAME" == "osx"   ]]; then brew install open-mpi                                                                     ;fi
 
 install:
